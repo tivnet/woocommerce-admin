@@ -1,4 +1,3 @@
-/** @format */
 /**
  * External dependencies
  */
@@ -9,7 +8,7 @@ import { Component, Fragment } from '@wordpress/element';
  * WooCommerce dependencies
  */
 import { Card, List } from '@woocommerce/components';
-import { getAdminLink } from '@woocommerce/navigation';
+import { getAdminLink } from '@woocommerce/wc-admin-settings';
 
 /**
  * Internal dependencies
@@ -19,10 +18,14 @@ import { recordEvent } from 'lib/tracks';
 const subTasks = [
 	{
 		title: __( 'Add manually (recommended)', 'woocommerce-admin' ),
-		content: __( 'For small stores we recommend adding products manually', 'woocommerce-admin' ),
+		content: __(
+			'For small stores we recommend adding products manually',
+			'woocommerce-admin'
+		),
 		before: <i className="material-icons-outlined">add_box</i>,
 		after: <i className="material-icons-outlined">chevron_right</i>,
-		onClick: () => recordEvent( 'tasklist_add_product', { method: 'manually' } ),
+		onClick: () =>
+			recordEvent( 'tasklist_add_product', { method: 'manually' } ),
 		href: getAdminLink(
 			'post-new.php?post_type=product&wc_onboarding_active_task=products&tutorial=true'
 		),
@@ -35,9 +38,10 @@ const subTasks = [
 		),
 		before: <i className="material-icons-outlined">import_export</i>,
 		after: <i className="material-icons-outlined">chevron_right</i>,
-		onClick: () => recordEvent( 'tasklist_add_product', { method: 'import' } ),
+		onClick: () =>
+			recordEvent( 'tasklist_add_product', { method: 'import' } ),
 		href: getAdminLink(
-			'edit.php?post_type=product&page=product_importer&wc_onboarding_active_task=products'
+			'edit.php?post_type=product&page=product_importer&wc_onboarding_active_task=product-import'
 		),
 	},
 	{
@@ -48,7 +52,8 @@ const subTasks = [
 		),
 		before: <i className="material-icons-outlined">cloud_download</i>,
 		after: <i className="material-icons-outlined">chevron_right</i>,
-		onClick: () => recordEvent( 'tasklist_add_product', { method: 'migrate' } ),
+		onClick: () =>
+			recordEvent( 'tasklist_add_product', { method: 'migrate' } ),
 		// @todo This should be replaced with the in-app purchase iframe when ready.
 		href: 'https://woocommerce.com/products/cart2cart/',
 		target: '_blank',

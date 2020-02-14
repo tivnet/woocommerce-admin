@@ -1,4 +1,3 @@
-/** @format */
 /**
  * External dependencies
  */
@@ -32,17 +31,25 @@ class Control extends Component {
 	}
 
 	updateSearch( onSearch ) {
-		return event => {
+		return ( event ) => {
 			onSearch( event.target.value );
 		};
 	}
 
 	onFocus( onSearch ) {
-		const { isSearchable, setExpanded } = this.props;
+		const {
+			isSearchable,
+			setExpanded,
+			showAllOnFocus,
+			updateFilteredOptions,
+		} = this.props;
 
-		return event => {
+		return ( event ) => {
 			this.setState( { isActive: true } );
-			if ( isSearchable ) {
+			if ( isSearchable && showAllOnFocus ) {
+				event.target.select();
+				updateFilteredOptions( '' );
+			} else if ( isSearchable ) {
 				onSearch( event.target.value );
 			} else {
 				setExpanded( true );
@@ -51,6 +58,12 @@ class Control extends Component {
 	}
 
 	onBlur() {
+		const { onBlur } = this.props;
+
+		if ( typeof onBlur === 'function' ) {
+			onBlur();
+		}
+
 		this.setState( { isActive: false } );
 	}
 
@@ -90,7 +103,11 @@ class Control extends Component {
 			return null;
 		}
 
-		return <div className="woocommerce-select-control__control-value">{ selected[ 0 ].label }</div>;
+		return (
+			<div className="woocommerce-select-control__control-value">
+				{ selected[ 0 ].label }
+			</div>
+		);
 	}
 
 	renderInput() {
@@ -128,24 +145,49 @@ class Control extends Component {
 				aria-owns={ listboxId }
 				aria-controls={ listboxId }
 				aria-activedescendant={ activeId }
-				aria-describedby={ hasTags && inlineTags ? `search-inline-input-${ instanceId }` : null }
+				aria-describedby={
+					hasTags && inlineTags
+						? `search-inline-input-${ instanceId }`
+						: null
+				}
 			/>
 		);
 	}
 
 	getInputValue() {
-		const { isFocused, isSearchable, multiple, query, selected } = this.props;
+		const {
+			isFocused,
+			isSearchable,
+			multiple,
+			query,
+			selected,
+		} = this.props;
 		const selectedValue = selected.length ? selected[ 0 ].label : '';
 
-		if ( ! isSearchable && multiple ) {
-			return '';
+		// Show the selected value for simple select dropdowns.
+		if ( ! multiple && ! isFocused ) {
+			return selectedValue;
 		}
 
-		return isSearchable && isFocused ? query : selectedValue;
+		// Show the search query when focused on searchable controls.
+		if ( isSearchable && isFocused && query ) {
+			return query;
+		}
+
+		return '';
 	}
 
 	render() {
-		const { hasTags, help, inlineTags, instanceId, isSearchable, label, query } = this.props;
+		const {
+			className,
+			hasTags,
+			help,
+			inlineTags,
+			instanceId,
+			isSearchable,
+			label,
+			query,
+		} = this.props;
 		const { isActive } = this.state;
 
 		return (
@@ -156,17 +198,24 @@ class Control extends Component {
 			// for the benefit of sighted users.
 			/* eslint-disable jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */
 			<div
-				className={ classnames( 'components-base-control', 'woocommerce-select-control__control', {
-					empty: ! query.length,
-					'is-active': isActive,
-					'has-tags': inlineTags && hasTags,
-					'with-value': this.getInputValue().length,
-				} ) }
+				className={ classnames(
+					'components-base-control',
+					'woocommerce-select-control__control',
+					className,
+					{
+						empty: ! query || query.length === 0,
+						'is-active': isActive,
+						'has-tags': inlineTags && hasTags,
+						'with-value': this.getInputValue().length,
+					}
+				) }
 				onClick={ () => {
 					this.input.current.focus();
 				} }
 			>
-				{ isSearchable && <i className="material-icons-outlined">search</i> }
+				{ isSearchable && (
+					<i className="material-icons-outlined">search</i>
+				) }
 				{ inlineTags && <Tags { ...this.props } /> }
 
 				<div className="components-base-control__field">
@@ -180,8 +229,14 @@ class Control extends Component {
 					) }
 					{ this.renderInput() }
 					{ inlineTags && (
-						<span id={ `search-inline-input-${ instanceId }` } className="screen-reader-text">
-							{ __( 'Move backward for selected items', 'woocommerce-admin' ) }
+						<span
+							id={ `search-inline-input-${ instanceId }` }
+							className="screen-reader-text"
+						>
+							{ __(
+								'Move backward for selected items',
+								'woocommerce-admin'
+							) }
 						</span>
 					) }
 					{ !! help && (
@@ -229,6 +284,10 @@ Control.propTypes = {
 	 */
 	listboxId: PropTypes.string,
 	/**
+	 * Function called when the input is blurred.
+	 */
+	onBlur: PropTypes.func,
+	/**
 	 * Function called when selected results change, passed result list.
 	 */
 	onChange: PropTypes.func,
@@ -251,10 +310,15 @@ Control.propTypes = {
 	 */
 	selected: PropTypes.arrayOf(
 		PropTypes.shape( {
-			key: PropTypes.oneOfType( [ PropTypes.number, PropTypes.string ] ).isRequired,
+			key: PropTypes.oneOfType( [ PropTypes.number, PropTypes.string ] )
+				.isRequired,
 			label: PropTypes.string,
 		} )
 	),
+	/**
+	 * Show all options on focusing, even if a query exists.
+	 */
+	showAllOnFocus: PropTypes.bool,
 };
 
 export default Control;

@@ -1,4 +1,3 @@
-/** @format */
 /**
  * External dependencies
  */
@@ -10,7 +9,7 @@ import PropTypes from 'prop-types';
  * WooCommerce dependencies
  */
 import { EmptyContent } from '@woocommerce/components';
-import { getAdminLink } from '@woocommerce/navigation';
+import { getAdminLink } from '@woocommerce/wc-admin-settings';
 
 /**
  * Component to render when there is an error in a report component due to data
@@ -22,14 +21,20 @@ class ReportError extends Component {
 		let title, actionLabel, actionURL, actionCallback;
 
 		if ( isError ) {
-			title = __( 'There was an error getting your stats. Please try again.', 'woocommerce-admin' );
+			title = __(
+				'There was an error getting your stats. Please try again.',
+				'woocommerce-admin'
+			);
 			actionLabel = __( 'Reload', 'woocommerce-admin' );
 			actionCallback = () => {
 				// @todo Add tracking for how often an error is displayed, and the reload action is clicked.
 				window.location.reload();
 			};
 		} else if ( isEmpty ) {
-			title = __( 'No results could be found for this date range.', 'woocommerce-admin' );
+			title = __(
+				'No results could be found for this date range.',
+				'woocommerce-admin'
+			);
 			actionLabel = __( 'View Orders', 'woocommerce-admin' );
 			actionURL = getAdminLink( 'edit.php?post_type=shop_order' );
 		}

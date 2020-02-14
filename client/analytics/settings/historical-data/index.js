@@ -1,4 +1,3 @@
-/** @format */
 /**
  * External dependencies
  */
@@ -6,7 +5,9 @@ import { __ } from '@wordpress/i18n';
 import { addQueryArgs } from '@wordpress/url';
 import apiFetch from '@wordpress/api-fetch';
 import { Component } from '@wordpress/element';
+import { compose } from '@wordpress/compose';
 import moment from 'moment';
+import { withDispatch } from '@wordpress/data';
 import { withSpokenMessages } from '@wordpress/components';
 
 /**
@@ -14,7 +15,9 @@ import { withSpokenMessages } from '@wordpress/components';
  */
 import { formatParams } from './utils';
 import HistoricalDataLayout from './layout';
+import { QUERY_DEFAULTS } from 'wc-api/constants';
 import { recordEvent } from 'lib/tracks';
+import withSelect from 'wc-api/with-select';
 
 class HistoricalData extends Component {
 	constructor() {
@@ -50,8 +53,8 @@ class HistoricalData extends Component {
 	makeQuery( path, errorMessage ) {
 		const { createNotice } = this.props;
 		apiFetch( { path, method: 'POST' } )
-			.then( response => {
-				if ( 'success' === response.status ) {
+			.then( ( response ) => {
+				if ( response.status === 'success' ) {
 					createNotice( 'success', response.message );
 				} else {
 					createNotice( 'error', errorMessage );
@@ -61,7 +64,7 @@ class HistoricalData extends Component {
 					} );
 				}
 			} )
-			.catch( error => {
+			.catch( ( error ) => {
 				if ( error && error.message ) {
 					createNotice( 'error', error.message );
 					this.setState( {
@@ -81,6 +84,15 @@ class HistoricalData extends Component {
 	}
 
 	onImportStarted() {
+		const { notes, updateNote } = this.props;
+
+		const historicalDataNote = notes.find(
+			( note ) => note.name === 'wc-admin-historical-data'
+		);
+		if ( historicalDataNote ) {
+			updateNote( historicalDataNote.id, { status: 'actioned' } );
+		}
+
 		this.setState( {
 			activeImport: true,
 			lastImportStartTimestamp: Date.now(),
@@ -88,7 +100,7 @@ class HistoricalData extends Component {
 	}
 
 	onDeletePreviousData() {
-		const path = '/wc/v4/reports/import/delete';
+		const path = '/wc-analytics/reports/import/delete';
 		const errorMessage = __(
 			'There was a problem deleting your previous data.',
 			'woocommerce-admin'
@@ -109,7 +121,7 @@ class HistoricalData extends Component {
 	onStartImport() {
 		const { period, skipChecked } = this.state;
 		const path = addQueryArgs(
-			'/wc/v4/reports/import',
+			'/wc-analytics/reports/import',
 			formatParams( this.dateFormat, period, skipChecked )
 		);
 		const errorMessage = __(
@@ -124,7 +136,7 @@ class HistoricalData extends Component {
 		this.setState( {
 			lastImportStopTimestamp: Date.now(),
 		} );
-		const path = '/wc/v4/reports/import/cancel';
+		const path = '/wc-analytics/reports/import/cancel';
 		const errorMessage = __(
 			'There was a problem stopping your current import.',
 			'woocommerce-admin'
@@ -190,4 +202,24 @@ class HistoricalData extends Component {
 	}
 }
 
-export default withSpokenMessages( HistoricalData );
+export default compose( [
+	withSelect( ( select ) => {
+		const { getNotes } = select( 'wc-api' );
+
+		const notesQuery = {
+			page: 1,
+			per_page: QUERY_DEFAULTS.pageSize,
+			type: 'update',
+			status: 'unactioned',
+		};
+		const notes = getNotes( notesQuery );
+
+		return { notes };
+	} ),
+	withDispatch( ( dispatch ) => {
+		const { updateNote } = dispatch( 'wc-api' );
+
+		return { updateNote };
+	} ),
+	withSpokenMessages,
+] )( HistoricalData );

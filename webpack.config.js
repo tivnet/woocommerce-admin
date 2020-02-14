@@ -1,4 +1,3 @@
-/** @format */
 /**
  * External dependencies
  */
@@ -17,14 +16,20 @@ const CustomTemplatedPathPlugin = require( '@wordpress/custom-templated-path-web
 
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
-// @todo Add a `beta` phase and build process so that we can separate final .org versions from beta GitHub versions.
-let WC_ADMIN_PHASE = process.env.WC_ADMIN_PHASE || 'core';
+// generate-feature-config.php defaults to 'plugin', so lets match that here.
+let WC_ADMIN_PHASE = process.env.WC_ADMIN_PHASE || 'plugin';
 if ( [ 'development', 'plugin', 'core' ].indexOf( WC_ADMIN_PHASE ) === -1 ) {
-	WC_ADMIN_PHASE = 'core';
+	WC_ADMIN_PHASE = 'plugin';
 }
-const WC_ADMIN_CONFIG = require( path.join( __dirname, 'config', WC_ADMIN_PHASE + '.json' ) );
-const WC_ADMIN_ADDITIONAL_FEATURES = process.env.WC_ADMIN_ADDITIONAL_FEATURES &&
-	JSON.parse( process.env.WC_ADMIN_ADDITIONAL_FEATURES ) || {};
+const WC_ADMIN_CONFIG = require( path.join(
+	__dirname,
+	'config',
+	WC_ADMIN_PHASE + '.json'
+) );
+const WC_ADMIN_ADDITIONAL_FEATURES =
+	( process.env.WC_ADMIN_ADDITIONAL_FEATURES &&
+		JSON.parse( process.env.WC_ADMIN_ADDITIONAL_FEATURES ) ) ||
+	{};
 
 const externals = {
 	'@wordpress/api-fetch': { this: [ 'wp', 'apiFetch' ] },
@@ -55,18 +60,25 @@ const wcAdminPackages = [
 ];
 
 const entryPoints = {};
-wcAdminPackages.forEach( name => {
+wcAdminPackages.forEach( ( name ) => {
 	externals[ `@woocommerce/${ name }` ] = {
-		this: [ 'wc', name.replace( /-([a-z])/g, ( match, letter ) => letter.toUpperCase() ) ],
+		this: [
+			'wc',
+			name.replace( /-([a-z])/g, ( match, letter ) =>
+				letter.toUpperCase()
+			),
+		],
 	};
 	entryPoints[ name ] = `./packages/${ name }`;
 } );
 
 const wpAdminScripts = [
 	'onboarding-homepage-notice',
+	'onboarding-product-notice',
+	'onboarding-product-import-notice',
 	'onboarding-tax-notice',
 ];
-wpAdminScripts.forEach( name => {
+wpAdminScripts.forEach( ( name ) => {
 	entryPoints[ name ] = `./client/wp-admin-scripts/${ name }`;
 } );
 
@@ -79,7 +91,9 @@ const webpackConfig = {
 	},
 	output: {
 		filename: ( data ) => {
-			return wpAdminScripts.includes( data.chunk.name ) ? './dist/wp-admin-scripts/[name].js' : './dist/[name]/index.js';
+			return wpAdminScripts.includes( data.chunk.name )
+				? './dist/wp-admin-scripts/[name].js'
+				: './dist/[name]/index.js';
 		},
 		path: __dirname,
 		library: [ 'wc', '[modulename]' ],
@@ -104,19 +118,22 @@ const webpackConfig = {
 					loader: 'babel-loader',
 					options: {
 						presets: [
-							[ '@babel/preset-env', { loose: true, modules: 'commonjs' } ],
+							[
+								'@babel/preset-env',
+								{ loose: true, modules: 'commonjs' },
+							],
 						],
 						plugins: [ 'transform-es2015-template-literals' ],
 					},
 				},
-				include: new RegExp( '/node_modules\/(' +
-					'|acorn-jsx' +
-					'|d3-array' +
-					'|debug' +
-					'|newspack-components' +
-					'|regexpu-core' +
-					'|unicode-match-property-ecmascript' +
-					'|unicode-match-property-value-ecmascript)/'
+				include: new RegExp(
+					'/node_modules/(' +
+						'|acorn-jsx' +
+						'|d3-array' +
+						'|debug' +
+						'|regexpu-core' +
+						'|unicode-match-property-ecmascript' +
+						'|unicode-match-property-value-ecmascript)/'
 				),
 			},
 			{ test: /\.md$/, use: 'raw-loader' },
@@ -143,6 +160,12 @@ const webpackConfig = {
 						query: {
 							includePaths: [ 'client/stylesheets/abstracts' ],
 							data:
+								'@import "node_modules/@wordpress/base-styles/_colors.scss"; ' +
+								'@import "node_modules/@wordpress/base-styles/_variables.scss"; ' +
+								'@import "node_modules/@wordpress/base-styles/_mixins.scss"; ' +
+								'@import "node_modules/@wordpress/base-styles/_breakpoints.scss"; ' +
+								'@import "node_modules/@wordpress/base-styles/_animations.scss"; ' +
+								'@import "node_modules/@wordpress/base-styles/_z-index.scss"; ' +
 								'@import "_colors"; ' +
 								'@import "_variables"; ' +
 								'@import "_breakpoints"; ' +
@@ -155,12 +178,12 @@ const webpackConfig = {
 	},
 	resolve: {
 		extensions: [ '.json', '.js', '.jsx' ],
-		modules: [
-			path.join( __dirname, 'client' ),
-			'node_modules',
-		],
+		modules: [ path.join( __dirname, 'client' ), 'node_modules' ],
 		alias: {
-			'gutenberg-components': path.resolve( __dirname, 'node_modules/@wordpress/components/src' ),
+			'gutenberg-components': path.resolve(
+				__dirname,
+				'node_modules/@wordpress/components/src'
+			),
 			// @todo - remove once https://github.com/WordPress/gutenberg/pull/16196 is released.
 			'react-spring': 'react-spring/web.cjs',
 			'@woocommerce/wc-admin-settings': path.resolve(
@@ -173,13 +196,18 @@ const webpackConfig = {
 		new FixStyleOnlyEntriesPlugin(),
 		// Inject the current feature flags.
 		new DefinePlugin( {
-			'window.wcAdminFeatures': { ...WC_ADMIN_CONFIG.features, ...WC_ADMIN_ADDITIONAL_FEATURES },
+			'window.wcAdminFeatures': {
+				...WC_ADMIN_CONFIG.features,
+				...WC_ADMIN_ADDITIONAL_FEATURES,
+			},
 		} ),
 		new CustomTemplatedPathPlugin( {
 			modulename( outputPath, data ) {
 				const entryName = get( data, [ 'chunk', 'name' ] );
 				if ( entryName ) {
-					return entryName.replace( /-([a-z])/g, ( match, letter ) => letter.toUpperCase() );
+					return entryName.replace( /-([a-z])/g, ( match, letter ) =>
+						letter.toUpperCase()
+					);
 				}
 				return outputPath;
 			},
@@ -194,11 +222,11 @@ const webpackConfig = {
 			filename: './dist/[name]/style.css',
 		} ),
 		new CopyWebpackPlugin(
-			wcAdminPackages.map( packageName => ( {
+			wcAdminPackages.map( ( packageName ) => ( {
 				from: `./packages/${ packageName }/build-style/*.css`,
 				to: `./dist/${ packageName }/`,
 				flatten: true,
-				transform: content => content,
+				transform: ( content ) => content,
 			} ) )
 		),
 	],

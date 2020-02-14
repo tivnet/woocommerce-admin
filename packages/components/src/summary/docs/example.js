@@ -1,4 +1,3 @@
-/** @format */
 /**
  * Internal dependencies
  */
@@ -11,7 +10,7 @@ export default () => (
 				<SummaryNumber
 					key="revenue"
 					value={ '$829.40' }
-					label="Gross Revenue"
+					label="Total Sales"
 					delta={ 29 }
 					href="/analytics/report"
 				/>,

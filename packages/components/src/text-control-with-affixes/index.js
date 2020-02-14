@@ -1,11 +1,11 @@
-/** @format */
 /**
  * External dependencies
  */
 import { Component } from '@wordpress/element';
+import { compose, withInstanceId } from '@wordpress/compose';
 import PropTypes from 'prop-types';
-import { BaseControl } from '@wordpress/components';
-import { withInstanceId } from '@wordpress/compose';
+import { BaseControl, withFocusOutside } from '@wordpress/components';
+import classnames from 'classnames';
 
 /**
  * This component is essentially a wrapper (really a reimplementation) around the
@@ -13,6 +13,24 @@ import { withInstanceId } from '@wordpress/compose';
  * a fixed part either at the beginning or at the end of the text input.
  */
 class TextControlWithAffixes extends Component {
+	constructor( props ) {
+		super( props );
+		this.state = {
+			isFocused: false,
+		};
+	}
+
+	handleFocusOutside() {
+		this.setState( { isFocused: false } );
+	}
+
+	handleOnClick( event, onClick ) {
+		this.setState( { isFocused: true } );
+		if ( typeof onClick === 'function' ) {
+			onClick( event );
+		}
+	}
+
 	render() {
 		const {
 			label,
@@ -21,11 +39,14 @@ class TextControlWithAffixes extends Component {
 			className,
 			instanceId,
 			onChange,
+			onClick,
 			prefix,
 			suffix,
 			type,
+			disabled,
 			...props
 		} = this.props;
+		const { isFocused } = this.state;
 
 		const id = `inspector-text-control-with-affixes-${ instanceId }`;
 		const onChangeValue = ( event ) => onChange( event.target.value );
@@ -40,9 +61,27 @@ class TextControlWithAffixes extends Component {
 			describedby.push( `${ id }__suffix` );
 		}
 
+		const baseControlClasses = classnames( className, {
+			'with-value': value !== '',
+			empty: value === '',
+			active: isFocused && ! disabled,
+		} );
+
+		const affixesClasses = classnames( 'text-control-with-affixes', {
+			'text-control-with-prefix': prefix,
+			'text-control-with-suffix': suffix,
+			disabled,
+		} );
+
 		return (
-			<BaseControl label={ label } id={ id } help={ help } className={ className }>
-				<div className="text-control-with-affixes">
+			<BaseControl
+				label={ label }
+				id={ id }
+				help={ help }
+				className={ baseControlClasses }
+				onClick={ ( event ) => this.handleOnClick( event, onClick ) }
+			>
+				<div className={ affixesClasses }>
 					{ prefix && (
 						<span
 							id={ `${ id }__prefix` }
@@ -59,6 +98,8 @@ class TextControlWithAffixes extends Component {
 						value={ value }
 						onChange={ onChangeValue }
 						aria-describedby={ describedby.join( ' ' ) }
+						disabled={ disabled }
+						onFocus={ () => this.setState( { isFocused: true } ) }
 						{ ...props }
 					/>
 
@@ -114,6 +155,13 @@ TextControlWithAffixes.propTypes = {
 	 * Markup to be appended at the end of the input.
 	 */
 	suffix: PropTypes.node,
+	/**
+	 * Whether or not the input is disabled.
+	 */
+	disabled: PropTypes.bool,
 };
 
-export default withInstanceId( TextControlWithAffixes );
+export default compose( [
+	withInstanceId,
+	withFocusOutside, // this MUST be the innermost HOC as it calls handleFocusOutside
+] )( TextControlWithAffixes );

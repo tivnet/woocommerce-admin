@@ -1,4 +1,3 @@
-/** @format */
 /**
  * External dependencies
  */
@@ -6,15 +5,16 @@ import { __ } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
 import { Component } from '@wordpress/element';
 import { compose } from '@wordpress/compose';
-import { filter } from 'lodash';
+import { difference, filter } from 'lodash';
+import interpolateComponents from 'interpolate-components';
 import { withDispatch } from '@wordpress/data';
 
 /**
  * WooCommerce dependencies
  */
-import { Card, Stepper } from '@woocommerce/components';
+import { Card, Link, Stepper } from '@woocommerce/components';
+import { getAdminLink, getSetting } from '@woocommerce/wc-admin-settings';
 import { getHistory, getNewPath } from '@woocommerce/navigation';
-import { getSetting } from '@woocommerce/wc-admin-settings';
 
 /**
  * Internal dependencies
@@ -37,8 +37,10 @@ class Shipping extends Component {
 			shippingZones: [],
 		};
 
+		// Cache active plugins to prevent removal mid-step.
+		const { activePlugins = [] } = getSetting( 'onboarding', {} );
+		this.activePlugins = activePlugins;
 		this.state = this.initialState;
-
 		this.completeStep = this.completeStep.bind( this );
 	}
 
@@ -61,10 +63,12 @@ class Shipping extends Component {
 		let hasCountryZone = false;
 
 		await Promise.all(
-			zones.map( async zone => {
+			zones.map( async ( zone ) => {
 				// "Rest of the world zone"
-				if ( 0 === zone.id ) {
-					zone.methods = await apiFetch( { path: `/wc/v3/shipping/zones/${ zone.id }/methods` } );
+				if ( zone.id === 0 ) {
+					zone.methods = await apiFetch( {
+						path: `/wc/v3/shipping/zones/${ zone.id }/methods`,
+					} );
 					zone.name = __( 'Rest of the world', 'woocommerce-admin' );
 					zone.toggleEnabled = true;
 					shippingZones.push( zone );
@@ -72,10 +76,16 @@ class Shipping extends Component {
 				}
 
 				// Return any zone with a single location matching the country zone.
-				zone.locations = await apiFetch( { path: `/wc/v3/shipping/zones/${ zone.id }/locations` } );
-				const countryLocation = zone.locations.find( location => countryCode === location.code );
+				zone.locations = await apiFetch( {
+					path: `/wc/v3/shipping/zones/${ zone.id }/locations`,
+				} );
+				const countryLocation = zone.locations.find(
+					( location ) => countryCode === location.code
+				);
 				if ( countryLocation ) {
-					zone.methods = await apiFetch( { path: `/wc/v3/shipping/zones/${ zone.id }/methods` } );
+					zone.methods = await apiFetch( {
+						path: `/wc/v3/shipping/zones/${ zone.id }/methods`,
+					} );
 					shippingZones.push( zone );
 					hasCountryZone = true;
 				}
@@ -105,55 +115,87 @@ class Shipping extends Component {
 	componentDidUpdate( prevProps, prevState ) {
 		const { countryCode, settings } = this.props;
 		const {
-			woocommerce_store_address,
-			woocommerce_default_country,
-			woocommerce_store_postcode,
+			woocommerce_store_address: storeAddress,
+			woocommerce_default_country: defaultCountry,
+			woocommerce_store_postcode: storePostcode,
 		} = settings;
 		const { step } = this.state;
 
 		if (
-			'store_location' === step &&
-			woocommerce_store_address &&
-			woocommerce_default_country &&
-			woocommerce_store_postcode
+			step === 'store_location' &&
+			storeAddress &&
+			defaultCountry &&
+			storePostcode
 		) {
 			this.completeStep();
 		}
 
 		if (
-			'rates' === step &&
-			( prevProps.countryCode !== countryCode || 'rates' !== prevState.step )
+			step === 'rates' &&
+			( prevProps.countryCode !== countryCode ||
+				prevState.step !== 'rates' )
 		) {
 			this.fetchShippingZones();
 		}
 	}
 
 	completeStep() {
+		const { createNotice } = this.props;
 		const { step } = this.state;
 		const steps = this.getSteps();
-		const currentStepIndex = steps.findIndex( s => s.key === step );
+		const currentStepIndex = steps.findIndex( ( s ) => s.key === step );
 		const nextStep = steps[ currentStepIndex + 1 ];
 
 		if ( nextStep ) {
 			this.setState( { step: nextStep.key } );
 		} else {
+			createNotice(
+				'success',
+				__(
+					"📦 Shipping is done! Don't worry, you can always change it later.",
+					'woocommerce-admin'
+				)
+			);
 			getHistory().push( getNewPath( {}, '/', {} ) );
 		}
 	}
 
+	getPluginsToActivate() {
+		const { countryCode, isJetpackConnected } = this.props;
+
+		const plugins = [];
+		if ( [ 'GB', 'CA', 'AU' ].includes( countryCode ) ) {
+			plugins.push( 'woocommerce-shipstation-integration' );
+		} else if ( countryCode === 'US' ) {
+			plugins.push( 'woocommerce-services' );
+
+			if ( ! isJetpackConnected ) {
+				plugins.push( 'jetpack' );
+			}
+		}
+		return difference( plugins, this.activePlugins );
+	}
+
 	getSteps() {
-		const { countryCode } = this.props;
+		const pluginsToActivate = this.getPluginsToActivate();
 
 		const steps = [
 			{
 				key: 'store_location',
 				label: __( 'Set store location', 'woocommerce-admin' ),
-				description: __( 'The address from which your business operates', 'woocommerce-admin' ),
+				description: __(
+					'The address from which your business operates',
+					'woocommerce-admin'
+				),
 				content: (
 					<StoreLocation
-						onComplete={ values => {
-							const country = getCountryCode( values.countryState );
-							recordEvent( 'tasklist_shipping_set_location', { country } );
+						onComplete={ ( values ) => {
+							const country = getCountryCode(
+								values.countryState
+							);
+							recordEvent( 'tasklist_shipping_set_location', {
+								country,
+							} );
 							this.completeStep();
 						} }
 						{ ...this.props }
@@ -170,6 +212,11 @@ class Shipping extends Component {
 				),
 				content: (
 					<ShippingRates
+						buttonText={
+							pluginsToActivate.length
+								? __( 'Proceed', 'woocommerce-admin' )
+								: __( 'Complete task', 'woocommerce-admin' )
+						}
 						shippingZones={ this.state.shippingZones }
 						onComplete={ this.completeStep }
 						{ ...this.props }
@@ -179,26 +226,55 @@ class Shipping extends Component {
 			},
 			{
 				key: 'label_printing',
-				label: __( 'Enable shipping label printing', 'woocommerce-admin' ),
-				description: __(
-					'With WooCommerce Services and Jetpack you can save time at the ' +
-						'Post Office by printing your shipping labels at home',
+				label: __(
+					'Enable shipping label printing',
 					'woocommerce-admin'
 				),
+				description: pluginsToActivate.includes(
+					'woocommerce-shipstation-integration'
+				)
+					? interpolateComponents( {
+							mixedString: __(
+								'We recommend using ShipStation to save time at the post office by printing your shipping ' +
+									'labels at home. Try ShipStation free for 30 days. {{link}}Learn more{{/link}}.',
+								'woocommerce-admin'
+							),
+							components: {
+								link: (
+									<Link
+										href="https://woocommerce.com/products/shipstation-integration"
+										target="_blank"
+										type="external"
+									/>
+								),
+							},
+					  } )
+					: __(
+							'With WooCommerce Services and Jetpack you can save time at the ' +
+								'Post Office by printing your shipping labels at home',
+							'woocommerce-admin'
+					  ),
 				content: (
 					<Plugins
 						onComplete={ () => {
-							recordEvent( 'tasklist_shipping_label_printing', { install: true } );
+							recordEvent( 'tasklist_shipping_label_printing', {
+								install: true,
+								pluginsToActivate,
+							} );
 							this.completeStep();
 						} }
 						onSkip={ () => {
-							recordEvent( 'tasklist_shipping_label_printing', { install: false } );
+							recordEvent( 'tasklist_shipping_label_printing', {
+								install: false,
+								pluginsToActivate,
+							} );
 							getHistory().push( getNewPath( {}, '/', {} ) );
 						} }
+						pluginSlugs={ pluginsToActivate }
 						{ ...this.props }
 					/>
 				),
-				visible: [ 'US', 'GB', 'CA', 'AU' ].includes( countryCode ),
+				visible: pluginsToActivate.length,
 			},
 			{
 				key: 'connect',
@@ -209,6 +285,9 @@ class Shipping extends Component {
 				),
 				content: (
 					<Connect
+						redirectUrl={ getAdminLink(
+							'admin.php?page=wc-admin'
+						) }
 						completeStep={ this.completeStep }
 						{ ...this.props }
 						onConnect={ () => {
@@ -216,11 +295,11 @@ class Shipping extends Component {
 						} }
 					/>
 				),
-				visible: 'US' === countryCode,
+				visible: pluginsToActivate.includes( 'jetpack' ),
 			},
 		];
 
-		return filter( steps, step => step.visible );
+		return filter( steps, ( step ) => step.visible );
 	}
 
 	render() {
@@ -243,22 +322,38 @@ class Shipping extends Component {
 }
 
 export default compose(
-	withSelect( select => {
-		const { getSettings, getSettingsError, isGetSettingsRequesting } = select( 'wc-api' );
+	withSelect( ( select ) => {
+		const {
+			getSettings,
+			getSettingsError,
+			isGetSettingsRequesting,
+			isJetpackConnected,
+		} = select( 'wc-api' );
 
 		const settings = getSettings( 'general' );
 		const isSettingsError = Boolean( getSettingsError( 'general' ) );
 		const isSettingsRequesting = isGetSettingsRequesting( 'general' );
 
-		const countryCode = getCountryCode( settings.woocommerce_default_country );
+		const countryCode = getCountryCode(
+			settings.woocommerce_default_country
+		);
 
 		const { countries = [] } = getSetting( 'dataEndpoints', {} );
-		const country = countryCode ? countries.find( c => c.code === countryCode ) : null;
+		const country = countryCode
+			? countries.find( ( c ) => c.code === countryCode )
+			: null;
 		const countryName = country ? country.name : null;
 
-		return { countryCode, countryName, isSettingsError, isSettingsRequesting, settings };
+		return {
+			countryCode,
+			countryName,
+			isJetpackConnected: isJetpackConnected(),
+			isSettingsError,
+			isSettingsRequesting,
+			settings,
+		};
 	} ),
-	withDispatch( dispatch => {
+	withDispatch( ( dispatch ) => {
 		const { createNotice } = dispatch( 'core/notices' );
 		const { updateSettings } = dispatch( 'wc-api' );
 

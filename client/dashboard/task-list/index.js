@@ -1,10 +1,9 @@
-/** @format */
 /**
  * External dependencies
  */
 import { __ } from '@wordpress/i18n';
 import { Component, Fragment } from '@wordpress/element';
-import { filter, get } from 'lodash';
+import { get } from 'lodash';
 import { compose } from '@wordpress/compose';
 import classNames from 'classnames';
 import { Snackbar, Icon, Button, Modal } from '@wordpress/components';
@@ -17,17 +16,19 @@ import { Card, List, MenuItem, EllipsisMenu } from '@woocommerce/components';
 import { updateQueryString } from '@woocommerce/navigation';
 
 /**
- * Internal depdencies
+ * Internal dependencies
  */
 import './style.scss';
-import withSelect from 'wc-api/with-select';
+import CartModal from '../components/cart-modal';
+import { getAllTasks } from './tasks';
 import { recordEvent } from 'lib/tracks';
-import { getTasks } from './tasks';
+import withSelect from 'wc-api/with-select';
 
 class TaskDashboard extends Component {
 	constructor( props ) {
 		super( props );
 		this.state = {
+			isCartModalOpen: false,
 			isWelcomeModalOpen: ! props.modalDismissed,
 		};
 	}
@@ -61,6 +62,17 @@ class TaskDashboard extends Component {
 		document.body.classList.remove( 'woocommerce-task-dashboard__body' );
 	}
 
+	getTasks() {
+		const { profileItems, query, taskListPayments } = this.props;
+
+		return getAllTasks( {
+			profileItems,
+			options: taskListPayments,
+			query,
+			toggleCartModal: this.toggleCartModal.bind( this ),
+		} ).filter( ( task ) => task.visible );
+	}
+
 	recordTaskView() {
 		const { task } = this.props.query;
 
@@ -77,8 +89,10 @@ class TaskDashboard extends Component {
 		if ( this.getCurrentTask() ) {
 			return;
 		}
+
 		const { profileItems } = this.props;
-		const tasks = filter( this.props.tasks, task => task.visible );
+		const tasks = this.getTasks();
+
 		recordEvent( 'tasklist_view', {
 			number_tasks: tasks.length,
 			store_connected: profileItems.wccom_connected,
@@ -107,7 +121,7 @@ class TaskDashboard extends Component {
 
 	getCurrentTask() {
 		const { task } = this.props.query;
-		const currentTask = this.props.tasks.find( s => s.key === task );
+		const currentTask = this.getTasks().find( ( s ) => s.key === task );
 
 		if ( ! currentTask ) {
 			return null;
@@ -123,18 +137,23 @@ class TaskDashboard extends Component {
 
 		return (
 			<Snackbar className="woocommerce-task-card__prompt">
-				<div>
-					<div className="woocommerce-task-card__prompt-pointer" />
-					<span>{ __( 'Is this card useful?', 'woocommerce-admin' ) }</span>
-				</div>
-				<div className="woocommerce-task-card__prompt-actions">
-					<Button isLink onClick={ () => this.hideTaskCard( 'hide_card' ) }>
-						{ __( 'No, hide it', 'woocommerce-admin' ) }
-					</Button>
+				<div className="woocommerce-task-card__prompt-pointer" />
+				<div className="woocommerce-task-card__prompt-content">
+					<span>
+						{ __( 'Is this card useful?', 'woocommerce-admin' ) }
+					</span>
+					<div className="woocommerce-task-card__prompt-actions">
+						<Button
+							isLink
+							onClick={ () => this.hideTaskCard( 'hide_card' ) }
+						>
+							{ __( 'No, hide it', 'woocommerce-admin' ) }
+						</Button>
 
-					<Button isLink onClick={ () => this.keepTaskCard() }>
-						{ __( 'Yes, keep it', 'woocommerce-admin' ) }
-					</Button>
+						<Button isLink onClick={ () => this.keepTaskCard() }>
+							{ __( 'Yes, keep it', 'woocommerce-admin' ) }
+						</Button>
+					</div>
 				</div>
 			</Snackbar>
 		);
@@ -146,8 +165,16 @@ class TaskDashboard extends Component {
 				label={ __( 'Task List Options', 'woocommerce-admin' ) }
 				renderContent={ () => (
 					<div className="woocommerce-task-card__section-controls">
-						<MenuItem isClickable onInvoke={ () => this.hideTaskCard( 'remove_card' ) }>
-							<Icon icon={ 'trash' } label={ __( 'Remove block' ) } />
+						<MenuItem
+							isClickable
+							onInvoke={ () =>
+								this.hideTaskCard( 'remove_card' )
+							}
+						>
+							<Icon
+								icon={ 'trash' }
+								label={ __( 'Remove block' ) }
+							/>
 							{ __( 'Remove this card', 'woocommerce-admin' ) }
 						</MenuItem>
 					</div>
@@ -156,9 +183,21 @@ class TaskDashboard extends Component {
 		);
 	}
 
+	toggleCartModal() {
+		const { isCartModalOpen } = this.state;
+
+		if ( ! isCartModalOpen ) {
+			recordEvent( 'tasklist_purchase_extensions' );
+		}
+
+		this.setState( { isCartModalOpen: ! isCartModalOpen } );
+	}
+
 	closeWelcomeModal() {
 		// Prevent firing this event before the modal is seen.
-		if ( document.body.classList.contains( 'woocommerce-admin-is-loading' ) ) {
+		if (
+			document.body.classList.contains( 'woocommerce-admin-is-loading' )
+		) {
 			return;
 		}
 
@@ -181,7 +220,10 @@ class TaskDashboard extends Component {
 						>
 							🚀
 						</span>
-						{ __( "Woo hoo - you're almost there!", 'woocommerce-admin' ) }
+						{ __(
+							"Woo hoo - you're almost there!",
+							'woocommerce-admin'
+						) }
 					</Fragment>
 				}
 				onRequestClose={ () => this.closeWelcomeModal() }
@@ -202,7 +244,11 @@ class TaskDashboard extends Component {
 							) }
 						</p>
 					</div>
-					<Button isPrimary isDefault onClick={ () => this.closeWelcomeModal() }>
+					<Button
+						isPrimary
+						isDefault
+						onClick={ () => this.closeWelcomeModal() }
+					>
 						{ __( 'Continue', 'woocommerce-admin' ) }
 					</Button>
 				</div>
@@ -211,17 +257,22 @@ class TaskDashboard extends Component {
 	}
 
 	render() {
-		const { inline, tasks } = this.props;
-		const { isWelcomeModalOpen } = this.state;
+		const { inline } = this.props;
+		const { isCartModalOpen, isWelcomeModalOpen } = this.state;
 		const currentTask = this.getCurrentTask();
-		const listTasks = filter( tasks, task => task.visible ).map( task => {
-			task.className = classNames( task.completed ? 'is-complete' : null, task.className );
+		const listTasks = this.getTasks().map( ( task ) => {
+			task.className = classNames(
+				task.completed ? 'is-complete' : null,
+				task.className
+			);
 			task.before = task.completed ? (
 				<i className="material-icons-outlined">check_circle</i>
 			) : (
 				<i className="material-icons-outlined">{ task.icon }</i>
 			);
-			task.after = <i className="material-icons-outlined">chevron_right</i>;
+			task.after = (
+				<i className="material-icons-outlined">chevron_right</i>
+			);
 
 			if ( ! task.onClick ) {
 				task.onClick = () => updateQueryString( { task: task.key } );
@@ -239,7 +290,10 @@ class TaskDashboard extends Component {
 						<Fragment>
 							<Card
 								className="woocommerce-task-card"
-								title={ __( 'Set up your store and start selling', 'woocommerce-admin' ) }
+								title={ __(
+									'Set up your store and start selling',
+									'woocommerce-admin'
+								) }
 								description={ __(
 									'Below you’ll find a list of the most important steps to get your store up and running.',
 									'woocommerce-admin'
@@ -253,13 +307,19 @@ class TaskDashboard extends Component {
 						</Fragment>
 					) }
 				</div>
+				{ isCartModalOpen && (
+					<CartModal
+						onClose={ () => this.toggleCartModal() }
+						onClickPurchaseLater={ () => this.toggleCartModal() }
+					/>
+				) }
 			</Fragment>
 		);
 	}
 }
 
 export default compose(
-	withSelect( ( select, props ) => {
+	withSelect( ( select ) => {
 		const { getProfileItems, getOptions } = select( 'wc-api' );
 		const profileItems = getProfileItems();
 
@@ -267,27 +327,28 @@ export default compose(
 			'woocommerce_task_list_prompt_shown',
 			'woocommerce_task_list_welcome_modal_dismissed',
 		] );
-		const promptShown = get( options, [ 'woocommerce_task_list_prompt_shown' ], false );
+		const promptShown = get(
+			options,
+			[ 'woocommerce_task_list_prompt_shown' ],
+			false
+		);
 		const modalDismissed = get(
 			options,
 			[ 'woocommerce_task_list_welcome_modal_dismissed' ],
 			false
 		);
-
-		const tasks = getTasks( {
-			profileItems,
-			options: getOptions( [ 'woocommerce_onboarding_payments' ] ),
-			query: props.query,
-		} );
+		const taskListPayments = getOptions( [
+			'woocommerce_task_list_payments',
+		] );
 
 		return {
 			modalDismissed,
 			profileItems,
 			promptShown,
-			tasks,
+			taskListPayments,
 		};
 	} ),
-	withDispatch( dispatch => {
+	withDispatch( ( dispatch ) => {
 		const { updateOptions } = dispatch( 'wc-api' );
 		return {
 			updateOptions,

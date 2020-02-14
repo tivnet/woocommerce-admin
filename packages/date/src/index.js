@@ -1,4 +1,3 @@
-/** @format */
 /**
  * External dependencies
  */
@@ -7,12 +6,12 @@ import { find } from 'lodash';
 import { __ } from '@wordpress/i18n';
 import { parse } from 'qs';
 
-/**
- * WooCommerce dependencies
- */
-import { getSetting } from '@woocommerce/wc-admin-settings';
-
 export const isoDateFormat = 'YYYY-MM-DD';
+
+/**
+ * @typedef {Object} Moment - An instance of moment
+ * @typedef {Object} DateParams
+ */
 
 /**
  * DateValue Object
@@ -49,8 +48,14 @@ export const presetValues = [
 ];
 
 export const periods = [
-	{ value: 'previous_period', label: __( 'Previous Period', 'woocommerce-admin' ) },
-	{ value: 'previous_year', label: __( 'Previous Year', 'woocommerce-admin' ) },
+	{
+		value: 'previous_period',
+		label: __( 'Previous Period', 'woocommerce-admin' ),
+	},
+	{
+		value: 'previous_year',
+		label: __( 'Previous Year', 'woocommerce-admin' ),
+	},
 ];
 
 /**
@@ -89,7 +94,7 @@ export function toMoment( format, str ) {
 	if ( moment.isMoment( str ) ) {
 		return str.isValid() ? str : null;
 	}
-	if ( 'string' === typeof str ) {
+	if ( typeof str === 'string' ) {
 		const date = moment( str, [ isoDateFormat, format ], true );
 		return date.isValid() ? date : null;
 	}
@@ -106,9 +111,9 @@ export function toMoment( format, str ) {
 export function getRangeLabel( after, before ) {
 	const isSameYear = after.year() === before.year();
 	const isSameMonth = isSameYear && after.month() === before.month();
-	const isSameDay = isSameYear && isSameMonth && after.isSame( before, 'day' );
+	const isSameDay =
+		isSameYear && isSameMonth && after.isSame( before, 'day' );
 	const fullDateFormat = __( 'MMM D, YYYY', 'woocommerce-admin' );
-	const monthDayFormat = __( 'MMM D', 'woocommerce-admin' );
 
 	if ( isSameDay ) {
 		return after.format( fullDateFormat );
@@ -118,9 +123,14 @@ export function getRangeLabel( after, before ) {
 			.format( fullDateFormat )
 			.replace( afterDate, `${ afterDate } - ${ before.date() }` );
 	} else if ( isSameYear ) {
-		return `${ after.format( monthDayFormat ) } - ${ before.format( fullDateFormat ) }`;
+		const monthDayFormat = __( 'MMM D', 'woocommerce-admin' );
+		return `${ after.format( monthDayFormat ) } - ${ before.format(
+			fullDateFormat
+		) }`;
 	}
-	return `${ after.format( fullDateFormat ) } - ${ before.format( fullDateFormat ) }`;
+	return `${ after.format( fullDateFormat ) } - ${ before.format(
+		fullDateFormat
+	) }`;
 }
 
 /**
@@ -138,8 +148,8 @@ export function getLastPeriod( period, compare ) {
 	let secondaryStart;
 	let secondaryEnd;
 
-	if ( 'previous_period' === compare ) {
-		if ( 'year' === period ) {
+	if ( compare === 'previous_period' ) {
+		if ( period === 'year' ) {
 			// Subtract two entire periods for years to take into account leap year
 			secondaryStart = moment()
 				.startOf( period )
@@ -152,15 +162,8 @@ export function getLastPeriod( period, compare ) {
 			secondaryStart = secondaryEnd.clone().subtract( daysDiff, 'days' );
 		}
 	} else {
-		secondaryStart =
-			'week' === period
-				? primaryStart
-						.clone()
-						.subtract( 1, 'years' )
-						.week( primaryStart.week() )
-						.startOf( 'week' )
-				: primaryStart.clone().subtract( 1, 'years' );
-		secondaryEnd = secondaryStart.clone().endOf( period );
+		secondaryStart = primaryStart.clone().subtract( 1, 'years' );
+		secondaryEnd = primaryEnd.clone().subtract( 1, 'years' );
 	}
 	return {
 		primaryStart,
@@ -185,19 +188,16 @@ export function getCurrentPeriod( period, compare ) {
 	let secondaryStart;
 	let secondaryEnd;
 
-	if ( 'previous_period' === compare ) {
+	if ( compare === 'previous_period' ) {
 		secondaryStart = primaryStart.clone().subtract( 1, period );
 		secondaryEnd = primaryEnd.clone().subtract( 1, period );
 	} else {
-		secondaryStart =
-			'week' === period
-				? primaryStart
-						.clone()
-						.subtract( 1, 'years' )
-						.week( primaryStart.week() )
-						.startOf( 'week' )
-				: primaryStart.clone().subtract( 1, 'years' );
-		secondaryEnd = secondaryStart.clone().add( daysSoFar, 'days' );
+		secondaryStart = primaryStart.clone().subtract( 1, 'years' );
+		// Set the end time to 23:59:59.
+		secondaryEnd = secondaryStart
+			.clone()
+			.add( daysSoFar + 1, 'days' )
+			.subtract( 1, 'seconds' );
 	}
 	return {
 		primaryStart,
@@ -241,9 +241,11 @@ function getDateValue( period, compare, after, before ) {
 			return getLastPeriod( 'year', compare );
 		case 'custom':
 			const difference = before.diff( after, 'days' );
-			if ( 'previous_period' === compare ) {
+			if ( compare === 'previous_period' ) {
 				const secondaryEnd = after.clone().subtract( 1, 'days' );
-				const secondaryStart = secondaryEnd.clone().subtract( difference, 'days' );
+				const secondaryStart = secondaryEnd
+					.clone()
+					.subtract( difference, 'days' );
 				return {
 					primaryStart: after,
 					primaryEnd: before,
@@ -263,13 +265,19 @@ function getDateValue( period, compare, after, before ) {
 /**
  * Add default date-related parameters to a query object
  *
- * @param {string} [period] - period value, ie `last_week`
- * @param {string} [compare] - compare value, ie `previous_year`
- * @param {string} [after] - date in iso date format, ie `2018-07-03`
- * @param {string} [before] - date in iso date format, ie `2018-07-03`
+ * @param {Object} query - query object
+ * @property {string} query.period - period value, ie `last_week`
+ * @property {string} query.compare - compare value, ie `previous_year`
+ * @property {string} query.after - date in iso date format, ie `2018-07-03`
+ * @property {string} query.before - date in iso date format, ie `2018-07-03`
+ * @param {string} defaultDateRange - the store's default date range
  * @return {DateParams} - date parameters derived from query parameters with added defaults
  */
-export const getDateParamsFromQuery = ( { period, compare, after, before } ) => {
+export const getDateParamsFromQuery = (
+	query,
+	defaultDateRange = 'period=month&compare=previous_year'
+) => {
+	const { period, compare, after, before } = query;
 	if ( period && compare ) {
 		return {
 			period,
@@ -278,10 +286,6 @@ export const getDateParamsFromQuery = ( { period, compare, after, before } ) => 
 			before: before ? moment( before ) : null,
 		};
 	}
-	const {
-		woocommerce_default_date_range: defaultDateRange = 'period=month&compare=previous_year',
-	} = getSetting( 'wcAdminSettings', {} );
-
 	const queryDefaults = parse( defaultDateRange.replace( /&amp;/g, '&' ) );
 
 	return {
@@ -295,31 +299,39 @@ export const getDateParamsFromQuery = ( { period, compare, after, before } ) => 
 /**
  * Get Date Value Objects for a primary and secondary date range
  *
- * @param {Object} query - date parameters derived from query parameters
- * @property {string} [period] - period value, ie `last_week`
- * @property {string} [compare] - compare value, ie `previous_year`
- * @property {string} [after] - date in iso date format, ie `2018-07-03`
- * @property {string} [before] - date in iso date format, ie `2018-07-03`
+ * @param {Object} query - query object
+ * @property {string} query.period - period value, ie `last_week`
+ * @property {string} query.compare - compare value, ie `previous_year`
+ * @property {string} query.after - date in iso date format, ie `2018-07-03`
+ * @property {string} query.before - date in iso date format, ie `2018-07-03`
+ * @param {string} defaultDateRange - the store's default date range
  * @return {{primary: DateValue, secondary: DateValue}} - Primary and secondary DateValue objects
  */
-export const getCurrentDates = query => {
-	const { period, compare, after, before } = getDateParamsFromQuery( query );
-	const { primaryStart, primaryEnd, secondaryStart, secondaryEnd } = getDateValue(
-		period,
-		compare,
-		after,
-		before
+export const getCurrentDates = (
+	query,
+	defaultDateRange = 'period=month&compare=previous_year'
+) => {
+	const { period, compare, after, before } = getDateParamsFromQuery(
+		query,
+		defaultDateRange
 	);
+	const {
+		primaryStart,
+		primaryEnd,
+		secondaryStart,
+		secondaryEnd,
+	} = getDateValue( period, compare, after, before );
 
 	return {
 		primary: {
-			label: find( presetValues, item => item.value === period ).label,
+			label: find( presetValues, ( item ) => item.value === period )
+				.label,
 			range: getRangeLabel( primaryStart, primaryEnd ),
 			after: primaryStart,
 			before: primaryEnd,
 		},
 		secondary: {
-			label: find( periods, item => item.value === compare ).label,
+			label: find( periods, ( item ) => item.value === compare ).label,
 			range: getRangeLabel( secondaryStart, secondaryEnd ),
 			after: secondaryStart,
 			before: secondaryEnd,
@@ -330,9 +342,9 @@ export const getCurrentDates = query => {
 /**
  * Calculates the date difference between two dates. Used in calculating a matching date for previous period.
  *
- * @param {String} date - Date to compare
- * @param {String} date2 - Seconary date to compare
- * @return {Int}  - Difference in days.
+ * @param {string} date - Date to compare
+ * @param {string} date2 - Seconary date to compare
+ * @return {number}  - Difference in days.
  */
 export const getDateDifferenceInDays = ( date, date2 ) => {
 	const _date = moment( date );
@@ -343,17 +355,17 @@ export const getDateDifferenceInDays = ( date, date2 ) => {
 /**
  * Get the previous date for either the previous period of year.
  *
- * @param {String} date - Base date
- * @param {String|Moment.moment} date1 - primary start
- * @param {String|Moment.moment} date2 - secondary start
- * @param {String} compare - `previous_period`  or `previous_year`
- * @param {String} interval - interval
+ * @param {string} date - Base date
+ * @param {string|Moment.moment} date1 - primary start
+ * @param {string|Moment.moment} date2 - secondary start
+ * @param {string} compare - `previous_period`  or `previous_year`
+ * @param {string} interval - interval
  * @return {Moment.moment}  - Calculated date
  */
 export const getPreviousDate = ( date, date1, date2, compare, interval ) => {
 	const dateMoment = moment( date );
 
-	if ( 'previous_year' === compare ) {
+	if ( compare === 'previous_year' ) {
 		return dateMoment.clone().subtract( 1, 'years' );
 	}
 
@@ -372,9 +384,12 @@ export const getPreviousDate = ( date, date1, date2, compare, interval ) => {
  */
 export function getAllowedIntervalsForQuery( query ) {
 	let allowed = [];
-	if ( 'custom' === query.period ) {
+	if ( query.period === 'custom' ) {
 		const { primary } = getCurrentDates( query );
-		const differenceInDays = getDateDifferenceInDays( primary.before, primary.after );
+		const differenceInDays = getDateDifferenceInDays(
+			primary.before,
+			primary.after
+		);
 		if ( differenceInDays >= 365 ) {
 			allowed = [ 'day', 'week', 'month', 'quarter', 'year' ];
 		} else if ( differenceInDays >= 90 ) {
@@ -422,7 +437,7 @@ export function getAllowedIntervalsForQuery( query ) {
  * Returns the current interval to use.
  *
  * @param  {Object} query Current query
- * @return {String} Current interval.
+ * @return {string} Current interval.
  */
 export function getIntervalForQuery( query ) {
 	const allowed = getAllowedIntervalsForQuery( query );
@@ -439,7 +454,7 @@ export function getIntervalForQuery( query ) {
  * Returns the current chart type to use.
  *
  * @param  {Object} query Current query
- * @return {String} Current chart type.
+ * @return {string} Current chart type.
  */
 export function getChartTypeForQuery( { chartType } ) {
 	if ( [ 'line', 'bar' ].includes( chartType ) ) {
@@ -456,9 +471,9 @@ export const defaultTableDateFormat = 'm/d/Y';
  * Returns date formats for the current interval.
  * See https://github.com/d3/d3-time-format for chart formats.
  *
- * @param  {String} interval Interval to get date formats for.
- * @param  {Int}    [ticks] Number of ticks the axis will have.
- * @return {String} Current interval.
+ * @param  {string} interval Interval to get date formats for.
+ * @param  {number}    [ticks] Number of ticks the axis will have.
+ * @return {string} Current interval.
  */
 export function getDateFormatsForInterval( interval, ticks = 0 ) {
 	let screenReaderFormat = '%B %-d, %Y';
@@ -491,8 +506,14 @@ export function getDateFormatsForInterval( interval, ticks = 0 ) {
 				xFormat = '%b';
 				x2Format = '%Y';
 			}
-			screenReaderFormat = __( 'Week of %B %-d, %Y', 'woocommerce-admin' );
-			tooltipLabelFormat = __( 'Week of %B %-d, %Y', 'woocommerce-admin' );
+			screenReaderFormat = __(
+				'Week of %B %-d, %Y',
+				'woocommerce-admin'
+			);
+			tooltipLabelFormat = __(
+				'Week of %B %-d, %Y',
+				'woocommerce-admin'
+			);
 			break;
 		case 'quarter':
 		case 'month':
@@ -521,11 +542,12 @@ export function getDateFormatsForInterval( interval, ticks = 0 ) {
  * Gutenberg's moment instance is loaded with i18n values, which are
  * PHP date formats, ie 'LLL: "F j, Y g:i a"'. Override those with translations
  * of moment style js formats.
+ *
+ * @param {Object} config Locale config object, from store settings.
  */
-export function loadLocaleData() {
-	const { userLocale, weekdaysShort } = getSetting( 'locale' );
+export function loadLocaleData( { userLocale, weekdaysShort } ) {
 	// Don't update if the wp locale hasn't been set yet, like in unit tests, for instance.
-	if ( 'en' !== moment.locale() ) {
+	if ( moment.locale() !== 'en' ) {
 		moment.updateLocale( userLocale, {
 			longDateFormat: {
 				L: __( 'MM/DD/YYYY', 'woocommerce-admin' ),
@@ -539,28 +561,42 @@ export function loadLocaleData() {
 	}
 }
 
-loadLocaleData();
-
 export const dateValidationMessages = {
 	invalid: __( 'Invalid date', 'woocommerce-admin' ),
 	future: __( 'Select a date in the past', 'woocommerce-admin' ),
-	startAfterEnd: __( 'Start date must be before end date', 'woocommerce-admin' ),
-	endBeforeStart: __( 'Start date must be before end date', 'woocommerce-admin' ),
+	startAfterEnd: __(
+		'Start date must be before end date',
+		'woocommerce-admin'
+	),
+	endBeforeStart: __(
+		'Start date must be before end date',
+		'woocommerce-admin'
+	),
 };
+
+/**
+ * @typedef {Object} validatedDate
+ * @property {Moment|null} validatedDate.date - A resulting Moment date object or null, if invalid
+ * @property {string} validatedDate.error - An optional error message if date is invalid
+ */
 
 /**
  * Validate text input supplied for a date range.
  *
- * @param {string} type - Designate begining or end of range, eg `before` or `after`.
+ * @param {string} type - Designate beginning or end of range, eg `before` or `after`.
  * @param {string} value - User input value
  * @param {Moment|null} [before] - If already designated, the before date parameter
  * @param {Moment|null} [after] - If already designated, the after date parameter
  * @param {string} format - The expected date format in a user's locale
- * @return {Object} validatedDate - validated date oject
- * @param {Moment|null} validatedDate.date - A resulting Moment date object or null, if invalid
- * @param {string} validatedDate.error - An optional error message if date is invalid
+ * @return {Object} validatedDate - validated date object
  */
-export function validateDateInputForRange( type, value, before, after, format ) {
+export function validateDateInputForRange(
+	type,
+	value,
+	before,
+	after,
+	format
+) {
 	const date = toMoment( format, value );
 	if ( ! date ) {
 		return {
@@ -574,13 +610,13 @@ export function validateDateInputForRange( type, value, before, after, format ) 
 			error: dateValidationMessages.future,
 		};
 	}
-	if ( 'after' === type && before && date.isAfter( before, 'day' ) ) {
+	if ( type === 'after' && before && date.isAfter( before, 'day' ) ) {
 		return {
 			date: null,
 			error: dateValidationMessages.startAfterEnd,
 		};
 	}
-	if ( 'before' === type && after && date.isBefore( after, 'day' ) ) {
+	if ( type === 'before' && after && date.isBefore( after, 'day' ) ) {
 		return {
 			date: null,
 			error: dateValidationMessages.endBeforeStart,

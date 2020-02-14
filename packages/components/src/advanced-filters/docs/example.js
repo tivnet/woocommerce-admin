@@ -1,8 +1,8 @@
-/** @format */
 /**
  * Internal dependencies
  */
 import { AdvancedFilters } from '@woocommerce/components';
+import Currency from '@woocommerce/currency';
 
 const ORDER_STATUSES = {
 	cancelled: 'Cancelled',
@@ -15,8 +15,10 @@ const ORDER_STATUSES = {
 };
 
 const siteLocale = 'en_US';
+const siteCurrency = new Currency(); // pass site currency settings.
 
-const path = ( new URL( document.location ) ).searchParams.get( 'path' ) || '/devdocs';
+const path =
+	new URL( document.location ).searchParams.get( 'path' ) || '/devdocs';
 const query = {
 	component: 'advanced-filters',
 };
@@ -29,7 +31,8 @@ const advancedFilters = {
 				add: 'Order Status',
 				remove: 'Remove order status filter',
 				rule: 'Select an order status filter match',
-				title: '{{title}}Order Status{{/title}} {{rule /}} {{filter /}}',
+				title:
+					'{{title}}Order Status{{/title}} {{rule /}} {{filter /}}',
 				filter: 'Select an order status',
 			},
 			rules: [
@@ -44,7 +47,7 @@ const advancedFilters = {
 			],
 			input: {
 				component: 'SelectControl',
-				options: Object.keys( ORDER_STATUSES ).map( key => ( {
+				options: Object.keys( ORDER_STATUSES ).map( ( key ) => ( {
 					value: key,
 					label: ORDER_STATUSES[ key ],
 				} ) ),
@@ -97,7 +100,8 @@ const advancedFilters = {
 				add: 'Item Quantity',
 				remove: 'Remove item quantity filter',
 				rule: 'Select an item quantity filter match',
-				title: '{{title}}Item Quantity is{{/title}} {{rule /}} {{filter /}}',
+				title:
+					'{{title}}Item Quantity is{{/title}} {{rule /}} {{filter /}}',
 			},
 			rules: [
 				{
@@ -149,9 +153,10 @@ const advancedFilters = {
 export default () => (
 	<AdvancedFilters
 		siteLocale={ siteLocale }
-        path={ path }
-        query={ query }
-        filterTitle="Orders"
+		path={ path }
+		query={ query }
+		filterTitle="Orders"
 		config={ advancedFilters }
-    />
+		currency={ siteCurrency }
+	/>
 );

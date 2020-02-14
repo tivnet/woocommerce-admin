@@ -1,11 +1,11 @@
-/** @format */
 /**
  * External dependencies
  */
 import { __ } from '@wordpress/i18n';
-import { Button } from 'newspack-components';
+import { Button } from '@wordpress/components';
 import { Component, Fragment } from '@wordpress/element';
 import { compose } from '@wordpress/compose';
+import PropTypes from 'prop-types';
 import { withDispatch } from '@wordpress/data';
 
 /**
@@ -37,24 +37,70 @@ class Connect extends Component {
 	}
 
 	render() {
-		const { hasErrors, isRequesting } = this.props;
+		const { hasErrors, isRequesting, onSkip, skipText } = this.props;
 
-		return hasErrors ? (
-			<Button isPrimary onClick={ () => location.reload() }>
-				{ __( 'Retry', 'woocommerce-admin' ) }
-			</Button>
-		) : (
+		return (
 			<Fragment>
-				<Button isBusy={ isRequesting } isPrimary onClick={ this.connectJetpack }>
-					{ __( 'Connect', 'woocommerce-admin' ) }
-				</Button>
+				{ hasErrors ? (
+					<Button isPrimary onClick={ () => window.location.reload() }>
+						{ __( 'Retry', 'woocommerce-admin' ) }
+					</Button>
+				) : (
+					<Button
+						isBusy={ isRequesting }
+						isPrimary
+						onClick={ this.connectJetpack }
+					>
+						{ __( 'Connect', 'woocommerce-admin' ) }
+					</Button>
+				) }
+				{ onSkip && (
+					<Button onClick={ onSkip }>
+						{ skipText || __( 'No thanks', 'woocommerce-admin' ) }
+					</Button>
+				) }
 			</Fragment>
 		);
 	}
 }
 
+Connect.propTypes = {
+	/**
+	 * Method to create a displayed notice.
+	 */
+	createNotice: PropTypes.func.isRequired,
+	/**
+	 * Human readable error message.
+	 */
+	error: PropTypes.string,
+	/**
+	 * Bool to determine if the "Retry" button should be displayed.
+	 */
+	hasErrors: PropTypes.bool,
+	/**
+	 * Bool to check if the connection URL is still being requested.
+	 */
+	isRequesting: PropTypes.bool,
+	/**
+	 * Generated Jetpack connection URL.
+	 */
+	jetpackConnectUrl: PropTypes.string,
+	/**
+	 * Called when the plugin connection is skipped.
+	 */
+	onSkip: PropTypes.func,
+	/**
+	 * Redirect URL to encode as a URL param for the connection path.
+	 */
+	redirectUrl: PropTypes.string,
+	/**
+	 * Text used for the skip connection button.
+	 */
+	skipText: PropTypes.string,
+};
+
 export default compose(
-	withSelect( select => {
+	withSelect( ( select, props ) => {
 		const {
 			getJetpackConnectUrl,
 			isGetJetpackConnectUrlRequesting,
@@ -62,7 +108,7 @@ export default compose(
 		} = select( 'wc-api' );
 
 		const queryArgs = {
-			redirect_url: window.location.href,
+			redirect_url: props.redirectUrl || window.location.href,
 		};
 		const isRequesting = isGetJetpackConnectUrlRequesting( queryArgs );
 		const error = getJetpackConnectUrlError( queryArgs );
@@ -74,7 +120,7 @@ export default compose(
 			jetpackConnectUrl,
 		};
 	} ),
-	withDispatch( dispatch => {
+	withDispatch( ( dispatch ) => {
 		const { createNotice } = dispatch( 'core/notices' );
 
 		return {

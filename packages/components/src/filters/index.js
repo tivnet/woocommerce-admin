@@ -1,4 +1,3 @@
-/** @format */
 /**
  * External dependencies
  */
@@ -25,7 +24,7 @@ import { H, Section } from '../section';
  * Add a collection of report filters to a page. This uses `DatePicker` & `FilterPicker` for the "basic" filters, and `AdvancedFilters`
  * or a comparison card if "advanced" or "compare" are picked from `FilterPicker`.
  *
- * @return { object } -
+ * @return {Object} -
  */
 class ReportFilters extends Component {
 	constructor() {
@@ -48,21 +47,31 @@ class ReportFilters extends Component {
 			return null;
 		}
 
-		if ( 0 === query[ param ].indexOf( 'compare' ) ) {
+		if ( query[ param ].indexOf( 'compare' ) === 0 ) {
 			const filter = find( filters, { value: query[ param ] } );
 			if ( ! filter ) {
 				return null;
 			}
 			const { settings = {} } = filter;
 			return (
-				<div key={ param } className="woocommerce-filters__advanced-filters">
-					<CompareFilter path={ path } query={ query } { ...settings } />
+				<div
+					key={ param }
+					className="woocommerce-filters__advanced-filters"
+				>
+					<CompareFilter
+						path={ path }
+						query={ query }
+						{ ...settings }
+					/>
 				</div>
 			);
 		}
-		if ( 'advanced' === query[ param ] ) {
+		if ( query[ param ] === 'advanced' ) {
 			return (
-				<div key={ param } className="woocommerce-filters__advanced-filters">
+				<div
+					key={ param }
+					className="woocommerce-filters__advanced-filters"
+				>
 					<AdvancedFilters
 						siteLocale={ siteLocale }
 						currency={ currency }
@@ -83,20 +92,31 @@ class ReportFilters extends Component {
 	}
 
 	render() {
-		const { filters, query, path, showDatePicker, onFilterSelect } = this.props;
+		const {
+			dateQuery,
+			filters,
+			query,
+			path,
+			showDatePicker,
+			onFilterSelect,
+			isoDateFormat,
+		} = this.props;
 		return (
 			<Fragment>
-				<H className="screen-reader-text">{ __( 'Filters', 'woocommerce-admin' ) }</H>
+				<H className="screen-reader-text">
+					{ __( 'Filters', 'woocommerce-admin' ) }
+				</H>
 				<Section component="div" className="woocommerce-filters">
 					<div className="woocommerce-filters__basic-filters">
 						{ showDatePicker && (
 							<DateRangeFilterPicker
 								key={ JSON.stringify( query ) }
-								query={ query }
+								dateQuery={ dateQuery }
 								onRangeSelect={ this.onRangeSelect }
+								isoDateFormat={ isoDateFormat }
 							/>
 						) }
-						{ filters.map( config => {
+						{ filters.map( ( config ) => {
 							if ( config.showFilters( query ) ) {
 								return (
 									<FilterPicker
@@ -108,6 +128,7 @@ class ReportFilters extends Component {
 									/>
 								);
 							}
+							return null;
 						} ) }
 					</div>
 					{ filters.map( this.renderCard ) }
@@ -155,17 +176,34 @@ ReportFilters.propTypes = {
 	 */
 	onAdvancedFilterAction: PropTypes.func,
 	/**
-	 * The currency settings for the site.
+	 * The currency formatting instance for the site.
 	 */
-	currency: PropTypes.object,
+	currency: PropTypes.object.isRequired,
+	/**
+	 * The date query string represented in object form.
+	 */
+	dateQuery: PropTypes.shape( {
+		period: PropTypes.string.isRequired,
+		compare: PropTypes.string.isRequired,
+		before: PropTypes.object,
+		after: PropTypes.object,
+		primaryDate: PropTypes.shape( {
+			label: PropTypes.string.isRequired,
+			range: PropTypes.string.isRequired,
+		} ).isRequired,
+		secondaryDate: PropTypes.shape( {
+			label: PropTypes.string.isRequired,
+			range: PropTypes.string.isRequired,
+		} ).isRequired,
+	} ),
+	/**
+	 * ISO date format string.
+	 */
+	isoDateFormat: PropTypes.string,
 };
 
 ReportFilters.defaultProps = {
 	siteLocale: 'en_US',
-	currency: {
-		symbol: '$',
-		symbolPosition: 'left',
-	},
 	advancedFilters: {},
 	filters: [],
 	query: {},

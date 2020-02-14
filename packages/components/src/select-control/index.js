@@ -1,11 +1,10 @@
-/** @format */
 /**
  * External dependencies
  */
 import { __, _n, sprintf } from '@wordpress/i18n';
 import classnames from 'classnames';
 import { Component } from '@wordpress/element';
-import { escapeRegExp, findIndex, identity, noop } from 'lodash';
+import { debounce, escapeRegExp, findIndex, identity, noop } from 'lodash';
 import PropTypes from 'prop-types';
 import { withFocusOutside, withSpokenMessages } from '@wordpress/components';
 import { withInstanceId, compose } from '@wordpress/compose';
@@ -42,6 +41,10 @@ export class SelectControl extends Component {
 		this.decrementSelectedIndex = this.decrementSelectedIndex.bind( this );
 		this.incrementSelectedIndex = this.incrementSelectedIndex.bind( this );
 		this.onAutofillChange = this.onAutofillChange.bind( this );
+		this.updateFilteredOptions = debounce(
+			this.updateFilteredOptions.bind( this ),
+			props.searchDebounceTime
+		);
 		this.search = this.search.bind( this );
 		this.selectOption = this.selectOption.bind( this );
 		this.setExpanded = this.setExpanded.bind( this );
@@ -74,7 +77,7 @@ export class SelectControl extends Component {
 			return false;
 		}
 
-		return selected.some( item => Boolean( item.label ) );
+		return selected.some( ( item ) => Boolean( item.label ) );
 	}
 
 	getSelected() {
@@ -85,7 +88,9 @@ export class SelectControl extends Component {
 			return selected;
 		}
 
-		const selectedOption = options.find( option => option.key === selected );
+		const selectedOption = options.find(
+			( option ) => option.key === selected
+		);
 		return selectedOption ? [ selectedOption ] : [];
 	}
 
@@ -94,25 +99,25 @@ export class SelectControl extends Component {
 		const { query } = this.state;
 		const newSelected = multiple ? [ ...selected, option ] : [ option ];
 
+		this.reset( newSelected );
+
 		// Trigger a change if the selected value is different and pass back
 		// an array or string depending on the original value.
 		if ( Array.isArray( selected ) ) {
 			const isSelected = findIndex( selected, { key: option.key } );
-			if ( -1 === isSelected ) {
+			if ( isSelected === -1 ) {
 				onChange( newSelected, query );
 			}
 		} else if ( selected !== option.key ) {
 			onChange( option.key, query );
 		}
-
-		this.reset( newSelected );
 	}
 
 	decrementSelectedIndex() {
 		const { selectedIndex } = this.state;
 		const options = this.getOptions();
 		const nextSelectedIndex =
-			null !== selectedIndex
+			selectedIndex !== null
 				? ( selectedIndex === 0 ? options.length : selectedIndex ) - 1
 				: options.length - 1;
 
@@ -122,7 +127,8 @@ export class SelectControl extends Component {
 	incrementSelectedIndex() {
 		const { selectedIndex } = this.state;
 		const options = this.getOptions();
-		const nextSelectedIndex = null !== selectedIndex ? ( selectedIndex + 1 ) % options.length : 0;
+		const nextSelectedIndex =
+			selectedIndex !== null ? ( selectedIndex + 1 ) % options.length : 0;
 
 		this.setState( { selectedIndex: nextSelectedIndex } );
 	}
@@ -146,7 +152,10 @@ export class SelectControl extends Component {
 				'assertive'
 			);
 		} else {
-			debouncedSpeak( __( 'No results.', 'woocommerce-admin' ), 'assertive' );
+			debouncedSpeak(
+				__( 'No results.', 'woocommerce-admin' ),
+				'assertive'
+			);
 		}
 	}
 
@@ -157,28 +166,40 @@ export class SelectControl extends Component {
 	}
 
 	getFilteredOptions( options, query ) {
-		const { excludeSelectedOptions, getSearchExpression, maxResults, onFilter } = this.props;
-		const selectedKeys = this.getSelected().map( option => option.key );
+		const {
+			excludeSelectedOptions,
+			getSearchExpression,
+			maxResults,
+			onFilter,
+		} = this.props;
+		const selectedKeys = this.getSelected().map( ( option ) => option.key );
 		const filtered = [];
 
 		// Create a regular expression to filter the options.
-		const expression = getSearchExpression( escapeRegExp( query ? query.trim() : '' ) );
+		const expression = getSearchExpression(
+			escapeRegExp( query ? query.trim() : '' )
+		);
 		const search = expression ? new RegExp( expression, 'i' ) : /^$/;
 
 		for ( let i = 0; i < options.length; i++ ) {
 			const option = options[ i ];
 
-			if ( excludeSelectedOptions && selectedKeys.includes( option.key ) ) {
+			if (
+				excludeSelectedOptions &&
+				selectedKeys.includes( option.key )
+			) {
 				continue;
 			}
 
 			// Merge label into keywords
 			let { keywords = [] } = option;
-			if ( 'string' === typeof option.label ) {
+			if ( typeof option.label === 'string' ) {
 				keywords = [ ...keywords, option.label ];
 			}
 
-			const isMatch = keywords.some( keyword => search.test( keyword ) );
+			const isMatch = keywords.some( ( keyword ) =>
+				search.test( keyword )
+			);
 			if ( ! isMatch ) {
 				continue;
 			}
@@ -199,40 +220,47 @@ export class SelectControl extends Component {
 	}
 
 	search( query ) {
-		const { hideBeforeSearch, onSearch, options } = this.props;
 		this.setState( { query, isFocused: true } );
+		this.updateFilteredOptions( query );
+	}
 
-		const promise = ( this.activePromise = Promise.resolve( onSearch( options, query ) ).then(
-			searchOptions => {
-				if ( promise !== this.activePromise ) {
-					// Another promise has become active since this one was asked to resolve, so do nothing,
-					// or else we might end triggering a race condition updating the state.
-					return;
-				}
+	updateFilteredOptions( query ) {
+		const { hideBeforeSearch, options, onSearch } = this.props;
 
-				// Get all options if `hideBeforeSearch` is enabled and query is not null.
-				const filteredOptions =
-					null !== query && ! query.length && ! hideBeforeSearch
-						? searchOptions
-						: this.getFilteredOptions( searchOptions, query );
-
-				this.setState(
-					{
-						selectedIndex: 0,
-						filteredOptions,
-						isExpanded: Boolean( filteredOptions.length ),
-					},
-					() => this.announce( filteredOptions )
-				);
+		const promise = ( this.activePromise = Promise.resolve(
+			onSearch( options, query )
+		).then( ( searchOptions ) => {
+			if ( promise !== this.activePromise ) {
+				// Another promise has become active since this one was asked to resolve, so do nothing,
+				// or else we might end triggering a race condition updating the state.
+				return;
 			}
-		) );
+
+			// Get all options if `hideBeforeSearch` is enabled and query is not null.
+			const filteredOptions =
+				query !== null && ! query.length && ! hideBeforeSearch
+					? searchOptions
+					: this.getFilteredOptions( searchOptions, query );
+
+			this.setState(
+				{
+					selectedIndex: 0,
+					filteredOptions,
+					isExpanded: Boolean( filteredOptions.length ),
+				},
+				() => this.announce( filteredOptions )
+			);
+		} ) );
 	}
 
 	onAutofillChange( event ) {
 		const { options } = this.props;
-		const filteredOptions = this.getFilteredOptions( options, event.target.value );
+		const filteredOptions = this.getFilteredOptions(
+			options,
+			event.target.value
+		);
 
-		if ( 1 === filteredOptions.length ) {
+		if ( filteredOptions.length === 1 ) {
 			this.selectOption( filteredOptions[ 0 ] );
 		}
 	}
@@ -242,6 +270,7 @@ export class SelectControl extends Component {
 			autofill,
 			children,
 			className,
+			controlClassName,
 			inlineTags,
 			instanceId,
 			isSearchable,
@@ -251,18 +280,24 @@ export class SelectControl extends Component {
 
 		const hasTags = this.hasTags();
 		const { key: selectedKey = '' } = options[ selectedIndex ] || {};
-		const listboxId = isExpanded ? `woocommerce-select-control__listbox-${ instanceId }` : null;
+		const listboxId = isExpanded
+			? `woocommerce-select-control__listbox-${ instanceId }`
+			: null;
 		const activeId = isExpanded
 			? `woocommerce-select-control__option-${ instanceId }-${ selectedKey }`
 			: null;
 
 		return (
 			<div
-				className={ classnames( 'woocommerce-select-control', className, {
-					'has-inline-tags': hasTags && inlineTags,
-					'is-focused': isFocused,
-					'is-searchable': isSearchable,
-				} ) }
+				className={ classnames(
+					'woocommerce-select-control',
+					className,
+					{
+						'has-inline-tags': hasTags && inlineTags,
+						'is-focused': isFocused,
+						'is-searchable': isSearchable,
+					}
+				) }
 				ref={ this.bindNode }
 			>
 				{ autofill && (
@@ -279,16 +314,20 @@ export class SelectControl extends Component {
 					{ ...this.props }
 					{ ...this.state }
 					activeId={ activeId }
+					className={ controlClassName }
 					hasTags={ hasTags }
 					isExpanded={ isExpanded }
 					listboxId={ listboxId }
 					onSearch={ this.search }
 					selected={ this.getSelected() }
 					setExpanded={ this.setExpanded }
+					updateFilteredOptions={ this.updateFilteredOptions }
 					decrementSelectedIndex={ this.decrementSelectedIndex }
 					incrementSelectedIndex={ this.incrementSelectedIndex }
 				/>
-				{ ! inlineTags && hasTags && <Tags { ...this.props } selected={ this.getSelected() } /> }
+				{ ! inlineTags && hasTags && (
+					<Tags { ...this.props } selected={ this.getSelected() } />
+				) }
 				{ isExpanded && (
 					<List
 						{ ...this.props }
@@ -322,6 +361,10 @@ SelectControl.propTypes = {
 	 * Class name applied to parent div.
 	 */
 	className: PropTypes.string,
+	/**
+	 * Class name applied to control wrapper.
+	 */
+	controlClassName: PropTypes.string,
 	/**
 	 * Exclude already selected options from the options list.
 	 */
@@ -367,9 +410,15 @@ SelectControl.propTypes = {
 	options: PropTypes.arrayOf(
 		PropTypes.shape( {
 			isDisabled: PropTypes.bool,
-			key: PropTypes.oneOfType( [ PropTypes.number, PropTypes.string ] ).isRequired,
-			keywords: PropTypes.arrayOf( PropTypes.oneOfType( [ PropTypes.string, PropTypes.number ] ) ),
-			label: PropTypes.oneOfType( [ PropTypes.string, PropTypes.object ] ),
+			key: PropTypes.oneOfType( [ PropTypes.number, PropTypes.string ] )
+				.isRequired,
+			keywords: PropTypes.arrayOf(
+				PropTypes.oneOfType( [ PropTypes.string, PropTypes.number ] )
+			),
+			label: PropTypes.oneOfType( [
+				PropTypes.string,
+				PropTypes.object,
+			] ),
 			value: PropTypes.any,
 		} )
 	).isRequired,
@@ -377,6 +426,10 @@ SelectControl.propTypes = {
 	 * A placeholder for the search input.
 	 */
 	placeholder: PropTypes.string,
+	/**
+	 * Time in milliseconds to debounce the search function after typing.
+	 */
+	searchDebounceTime: PropTypes.number,
 	/**
 	 * An array of objects describing selected values or optionally a string for a single value.
 	 * If the label of the selected value is omitted, the Tag of that value will not
@@ -386,7 +439,10 @@ SelectControl.propTypes = {
 		PropTypes.string,
 		PropTypes.arrayOf(
 			PropTypes.shape( {
-				key: PropTypes.oneOfType( [ PropTypes.number, PropTypes.string ] ).isRequired,
+				key: PropTypes.oneOfType( [
+					PropTypes.number,
+					PropTypes.string,
+				] ).isRequired,
 				label: PropTypes.string,
 			} )
 		),
@@ -406,11 +462,22 @@ SelectControl.propTypes = {
 	/**
 	 * The input type for the search box control.
 	 */
-	searchInputType: PropTypes.oneOf( [ 'text', 'search', 'number', 'email', 'tel', 'url' ] ),
+	searchInputType: PropTypes.oneOf( [
+		'text',
+		'search',
+		'number',
+		'email',
+		'tel',
+		'url',
+	] ),
 	/**
 	 * Only show list options after typing a search query.
 	 */
 	hideBeforeSearch: PropTypes.bool,
+	/**
+	 * Show all options on focusing, even if a query exists.
+	 */
+	showAllOnFocus: PropTypes.bool,
 	/**
 	 * Render results list positioned statically instead of absolutely.
 	 */
@@ -425,11 +492,13 @@ SelectControl.defaultProps = {
 	isSearchable: false,
 	onChange: noop,
 	onFilter: identity,
-	onSearch: options => Promise.resolve( options ),
+	onSearch: ( options ) => Promise.resolve( options ),
 	maxResults: 0,
 	multiple: false,
+	searchDebounceTime: 0,
 	searchInputType: 'search',
 	selected: [],
+	showAllOnFocus: false,
 	showClearButton: false,
 	hideBeforeSearch: false,
 	staticList: false,

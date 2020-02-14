@@ -13,6 +13,19 @@ use \Automattic\WooCommerce\Admin\API\Reports\TimeInterval;
  * Class WC_Tests_Reports_Orders_Stats
  */
 class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
+	/**
+	 * Don't cache report data during these tests.
+	 */
+	public static function setUpBeforeClass() {
+		add_filter( 'woocommerce_analytics_report_should_use_cache', '__return_false' );
+	}
+
+	/**
+	 * Restore cache for other tests.
+	 */
+	public static function tearDownAfterClass() {
+		remove_filter( 'woocommerce_analytics_report_should_use_cache', '__return_false' );
+	}
 
 	/**
 	 * Test the calculations and querying works correctly for the base case of 1 order.
@@ -52,8 +65,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 
 		$data_store = new OrdersStatsDataStore();
 
-		$start_time = date( 'Y-m-d H:00:00', $order->get_date_created()->getOffsetTimestamp() );
-		$end_time   = date( 'Y-m-d H:59:59', $order->get_date_created()->getOffsetTimestamp() );
+		$start_time = gmdate( 'Y-m-d H:00:00', $order->get_date_created()->getOffsetTimestamp() );
+		$end_time   = gmdate( 'Y-m-d H:59:59', $order->get_date_created()->getOffsetTimestamp() );
 
 		$args           = array(
 			'interval' => 'hour',
@@ -66,7 +79,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				'num_items_sold'          => 4,
 				'avg_items_per_order'     => 4,
 				'avg_order_value'         => 68,
-				'gross_revenue'           => 97,
+				'total_sales'             => 85,
+				'gross_sales'             => 100,
 				'coupons'                 => 20,
 				'coupons_count'           => 1,
 				'refunds'                 => 12,
@@ -80,13 +94,14 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 			),
 			'intervals' => array(
 				array(
-					'interval'       => date( 'Y-m-d H', $order->get_date_created()->getOffsetTimestamp() ),
+					'interval'       => gmdate( 'Y-m-d H', $order->get_date_created()->getOffsetTimestamp() ),
 					'date_start'     => $start_time,
 					'date_start_gmt' => $start_time,
 					'date_end'       => $end_time,
 					'date_end_gmt'   => $end_time,
 					'subtotals'      => array(
-						'gross_revenue'           => 97,
+						'total_sales'             => 85,
+						'gross_sales'             => 100,
 						'net_revenue'             => 68,
 						'coupons'                 => 20,
 						'coupons_count'           => 1,
@@ -129,7 +144,7 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 			),
 			'intervals' => array(
 				array(
-					'interval'       => date( 'Y-m-d H', $order->get_date_created()->getOffsetTimestamp() ),
+					'interval'       => gmdate( 'Y-m-d H', $order->get_date_created()->getOffsetTimestamp() ),
 					'date_start'     => $start_time,
 					'date_start_gmt' => $start_time,
 					'date_end'       => $end_time,
@@ -195,8 +210,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 
 		$data_store = new OrdersStatsDataStore();
 
-		$start_time = date( 'Y-m-d H:00:00', $order->get_date_created()->getOffsetTimestamp() );
-		$end_time   = date( 'Y-m-d H:59:59', $order->get_date_created()->getOffsetTimestamp() );
+		$start_time = gmdate( 'Y-m-d H:00:00', $order->get_date_created()->getOffsetTimestamp() );
+		$end_time   = gmdate( 'Y-m-d H:59:59', $order->get_date_created()->getOffsetTimestamp() );
 
 		// Query default statuses that should not include excluded or refunded order statuses.
 		$args           = array(
@@ -210,7 +225,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				'num_items_sold'          => 8,
 				'avg_items_per_order'     => 4,
 				'avg_order_value'         => 50,
-				'gross_revenue'           => 150,
+				'total_sales'             => 100,
+				'gross_sales'             => 150,
 				'coupons'                 => 0,
 				'coupons_count'           => 0,
 				'refunds'                 => 50,
@@ -224,13 +240,14 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 			),
 			'intervals' => array(
 				array(
-					'interval'       => date( 'Y-m-d H', $order->get_date_created()->getOffsetTimestamp() ),
+					'interval'       => gmdate( 'Y-m-d H', $order->get_date_created()->getOffsetTimestamp() ),
 					'date_start'     => $start_time,
 					'date_start_gmt' => $start_time,
 					'date_end'       => $end_time,
 					'date_end_gmt'   => $end_time,
 					'subtotals'      => array(
-						'gross_revenue'           => 150,
+						'total_sales'             => 100,
+						'gross_sales'             => 150,
 						'net_revenue'             => 100,
 						'coupons'                 => 0,
 						'coupons_count'           => 0,
@@ -267,7 +284,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				'num_items_sold'          => 4,
 				'avg_items_per_order'     => 4,
 				'avg_order_value'         => 75,
-				'gross_revenue'           => 75,
+				'total_sales'             => 75,
+				'gross_sales'             => 75,
 				'coupons'                 => 0,
 				'coupons_count'           => 0,
 				'refunds'                 => 0,
@@ -281,13 +299,14 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 			),
 			'intervals' => array(
 				array(
-					'interval'       => date( 'Y-m-d H', $order->get_date_created()->getOffsetTimestamp() ),
+					'interval'       => gmdate( 'Y-m-d H', $order->get_date_created()->getOffsetTimestamp() ),
 					'date_start'     => $start_time,
 					'date_start_gmt' => $start_time,
 					'date_end'       => $end_time,
 					'date_end_gmt'   => $end_time,
 					'subtotals'      => array(
-						'gross_revenue'           => 75,
+						'total_sales'             => 75,
+						'gross_sales'             => 75,
 						'net_revenue'             => 75,
 						'coupons'                 => 0,
 						'coupons_count'           => 0,
@@ -360,8 +379,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 
 		$data_store = new OrdersStatsDataStore();
 
-		$start_time = date( 'Y-m-d H:00:00', $order->get_date_created()->getOffsetTimestamp() );
-		$end_time   = date( 'Y-m-d H:59:59', $order->get_date_created()->getOffsetTimestamp() );
+		$start_time = gmdate( 'Y-m-d H:00:00', $order->get_date_created()->getOffsetTimestamp() );
+		$end_time   = gmdate( 'Y-m-d H:59:59', $order->get_date_created()->getOffsetTimestamp() );
 
 		// Query all refunds.
 		$args           = array(
@@ -376,13 +395,14 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				'num_items_sold'          => 0,
 				'avg_items_per_order'     => 0,
 				'avg_order_value'         => 0,
-				'gross_revenue'           => 0, // @todo - does this value make sense?
+				'total_sales'             => -60,
+				'gross_sales'             => 0,
 				'coupons'                 => 0,
 				'coupons_count'           => 0,
 				'refunds'                 => 60,
 				'taxes'                   => 0,
 				'shipping'                => 0,
-				'net_revenue'             => -60, // @todo - does this value make sense?
+				'net_revenue'             => -60,
 				'num_returning_customers' => 1,
 				'num_new_customers'       => 0,
 				'products'                => 0,
@@ -390,14 +410,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 			),
 			'intervals' => array(
 				array(
-					'interval'       => date( 'Y-m-d H', $order->get_date_created()->getOffsetTimestamp() ),
+					'interval'       => gmdate( 'Y-m-d H', $order->get_date_created()->getOffsetTimestamp() ),
 					'date_start'     => $start_time,
 					'date_start_gmt' => $start_time,
 					'date_end'       => $end_time,
 					'date_end_gmt'   => $end_time,
 					'subtotals'      => array(
-						'gross_revenue'           => 0, // @todo - does this value make sense?
-						'net_revenue'             => -60, // @todo - does this value make sense?
+						'total_sales'             => -60,
+						'gross_sales'             => 0,
+						'net_revenue'             => -60,
 						'coupons'                 => 0,
 						'coupons_count'           => 0,
 						'shipping'                => 0,
@@ -433,7 +454,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				'num_items_sold'          => 12,
 				'avg_items_per_order'     => 4,
 				'avg_order_value'         => 75,
-				'gross_revenue'           => 225,
+				'total_sales'             => 225,
+				'gross_sales'             => 225,
 				'coupons'                 => 0,
 				'coupons_count'           => 0,
 				'refunds'                 => 0,
@@ -447,13 +469,14 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 			),
 			'intervals' => array(
 				array(
-					'interval'       => date( 'Y-m-d H', $order->get_date_created()->getOffsetTimestamp() ),
+					'interval'       => gmdate( 'Y-m-d H', $order->get_date_created()->getOffsetTimestamp() ),
 					'date_start'     => $start_time,
 					'date_start_gmt' => $start_time,
 					'date_end'       => $end_time,
 					'date_end_gmt'   => $end_time,
 					'subtotals'      => array(
-						'gross_revenue'           => 225,
+						'total_sales'             => 225,
+						'gross_sales'             => 225,
 						'net_revenue'             => 225,
 						'coupons'                 => 0,
 						'coupons_count'           => 0,
@@ -490,13 +513,14 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				'num_items_sold'          => 0,
 				'avg_items_per_order'     => 0,
 				'avg_order_value'         => 0,
-				'gross_revenue'           => 0, // @todo - does this value make sense?
+				'total_sales'             => -10,
+				'gross_sales'             => 0,
 				'coupons'                 => 0,
 				'coupons_count'           => 0,
 				'refunds'                 => 10,
 				'taxes'                   => 0,
 				'shipping'                => 0,
-				'net_revenue'             => -10, // @todo - does this value make sense?
+				'net_revenue'             => -10,
 				'num_returning_customers' => 1,
 				'num_new_customers'       => 0,
 				'products'                => 0,
@@ -504,14 +528,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 			),
 			'intervals' => array(
 				array(
-					'interval'       => date( 'Y-m-d H', $order->get_date_created()->getOffsetTimestamp() ),
+					'interval'       => gmdate( 'Y-m-d H', $order->get_date_created()->getOffsetTimestamp() ),
 					'date_start'     => $start_time,
 					'date_start_gmt' => $start_time,
 					'date_end'       => $end_time,
 					'date_end_gmt'   => $end_time,
 					'subtotals'      => array(
-						'gross_revenue'           => 0, // @todo - does this value make sense?
-						'net_revenue'             => -10, // @todo - does this value make sense?
+						'total_sales'             => -10,
+						'gross_sales'             => 0,
+						'net_revenue'             => -10,
 						'coupons'                 => 0,
 						'coupons_count'           => 0,
 						'shipping'                => 0,
@@ -547,7 +572,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				'num_items_sold'          => 0,
 				'avg_items_per_order'     => 0,
 				'avg_order_value'         => 0,
-				'gross_revenue'           => 0, // @todo - does this value make sense?
+				'total_sales'             => -50,
+				'gross_sales'             => 0,
 				'coupons'                 => 0,
 				'coupons_count'           => 0,
 				'refunds'                 => 50,
@@ -561,14 +587,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 			),
 			'intervals' => array(
 				array(
-					'interval'       => date( 'Y-m-d H', $order->get_date_created()->getOffsetTimestamp() ),
+					'interval'       => gmdate( 'Y-m-d H', $order->get_date_created()->getOffsetTimestamp() ),
 					'date_start'     => $start_time,
 					'date_start_gmt' => $start_time,
 					'date_end'       => $end_time,
 					'date_end_gmt'   => $end_time,
 					'subtotals'      => array(
-						'gross_revenue'           => 0, // @todo - does this value make sense?
-						'net_revenue'             => -50, // @todo - does this value make sense?
+						'total_sales'             => -50,
+						'gross_sales'             => 0,
+						'net_revenue'             => -50,
 						'coupons'                 => 0,
 						'coupons_count'           => 0,
 						'shipping'                => 0,
@@ -670,10 +697,12 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$num_items_sold  = $orders_count * $qty_per_product;
 		$shipping        = $orders_count * $order_shipping;
 		$net_revenue     = $orders_total - $shipping;
+		$gross_sales     = $product_price * $num_items_sold;
 		$subtotals       = array(
 			'orders_count'            => $orders_count,
 			'num_items_sold'          => $num_items_sold,
-			'gross_revenue'           => $orders_total,
+			'total_sales'             => $orders_total,
+			'gross_sales'             => $gross_sales,
 			'coupons'                 => $applied_amount,
 			'coupons_count'           => $coupons_count,
 			'refunds'                 => 0,
@@ -937,14 +966,16 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						+ ( $product_2_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						+ ( $product_3_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 		$new_customers  = 2;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -968,7 +999,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -1030,13 +1062,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						+ ( $product_2_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						+ ( $product_3_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -1060,7 +1094,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -1108,13 +1143,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						+ ( $product_2_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						+ ( $product_3_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -1138,7 +1175,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -1174,7 +1212,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 			'totals'    => array(
 				'orders_count'            => 0,
 				'num_items_sold'          => 0,
-				'gross_revenue'           => 0,
+				'total_sales'             => 0,
+				'gross_sales'             => 0,
 				'coupons'                 => 0,
 				'coupons_count'           => 0,
 				'refunds'                 => 0,
@@ -1198,7 +1237,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => 0,
 						'num_items_sold'          => 0,
-						'gross_revenue'           => 0,
+						'total_sales'             => 0,
+						'gross_sales'             => 0,
 						'coupons'                 => 0,
 						'coupons_count'           => 0,
 						'refunds'                 => 0,
@@ -1250,13 +1290,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						+ ( $product_2_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						+ ( $product_3_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -1280,7 +1322,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -1328,13 +1371,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						+ ( $product_1_price + $product_4_price ) * $qty_per_product * ( $orders_count / 4 )
 						+ ( $product_2_price + $product_4_price ) * $qty_per_product * ( $orders_count / 4 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -1358,7 +1403,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -1402,13 +1448,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$net_revenue    = $product_3_price * $qty_per_product * ( $orders_count / 2 )
 						+ ( $product_3_price + $product_4_price ) * $qty_per_product * ( $orders_count / 2 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -1433,7 +1481,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -1479,13 +1528,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						+ $product_2_price * $qty_per_product * ( $orders_count / 4 )
 						+ ( $product_2_price + $product_4_price ) * $qty_per_product * ( $orders_count / 4 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -1509,7 +1560,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -1554,13 +1606,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$net_revenue    = $product_3_price * $qty_per_product * ( $orders_count / 2 )
 						+ ( $product_3_price + $product_4_price ) * $qty_per_product * ( $orders_count / 2 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -1584,7 +1638,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -1632,13 +1687,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$net_revenue    = $product_2_price * $qty_per_product * ( $orders_count / 2 )
 						+ ( $product_2_price + $product_4_price ) * $qty_per_product * ( $orders_count / 2 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -1662,7 +1719,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -1712,13 +1770,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						+ ( $product_2_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						+ ( $product_3_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -1742,7 +1802,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -1790,13 +1851,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						+ ( $product_2_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						+ ( $product_3_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -1820,7 +1883,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -1868,13 +1932,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						+ ( $product_2_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						+ ( $product_3_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -1898,7 +1964,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -1947,13 +2014,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						+ ( $product_2_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						+ ( $product_3_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -1977,7 +2046,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -2029,13 +2099,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						+ ( $product_2_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						+ ( $product_3_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -2059,7 +2131,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -2094,13 +2167,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$coupons        = 0;
 		$shipping       = $orders_count * 10;
 		$net_revenue    = $product_1_price * $qty_per_product * $orders_count;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => 0,
 				'refunds'                 => 0,
@@ -2124,7 +2199,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => 0,
 						'refunds'                 => 0,
@@ -2171,13 +2247,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						+ ( $product_3_price + $product_4_price ) * $qty_per_product * ( $total_orders_count / 6 )
 						- $product_1_price * $qty_per_product * $returning_orders_count
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -2201,7 +2279,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -2250,13 +2329,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$net_revenue    = $product_1_price * $qty_per_product * ( $orders_count / 2 )
 						+ ( $product_1_price + $product_4_price ) * $qty_per_product * ( $orders_count / 2 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -2280,7 +2361,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -2331,13 +2413,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						+ ( $product_2_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						+ ( $product_3_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -2361,7 +2445,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -2408,13 +2493,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$net_revenue    = $product_1_price * $qty_per_product * ( $orders_count / 2 )
 						+ ( $product_1_price + $product_4_price ) * $qty_per_product * ( $orders_count / 2 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -2438,7 +2525,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -2488,13 +2576,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$net_revenue    = $product_1_price * $qty_per_product * ( $orders_count / 2 )
 						+ ( $product_1_price + $product_4_price ) * $qty_per_product * ( $orders_count / 2 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -2518,7 +2608,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -2572,13 +2663,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$net_revenue    = $product_1_price * $qty_per_product * ( $orders_count / 2 )
 						+ ( $product_1_price + $product_4_price ) * $qty_per_product * ( $orders_count / 2 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -2602,7 +2695,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -2656,13 +2750,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$net_revenue    = $product_1_price * $qty_per_product * ( $orders_count / 2 )
 						+ $product_2_price * $qty_per_product * ( $orders_count / 2 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -2687,7 +2783,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -2744,13 +2841,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$net_revenue    = $product_1_price * $qty_per_product * ( $orders_count / 2 )
 						+ $product_2_price * $qty_per_product * ( $orders_count / 2 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -2774,7 +2873,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -2835,13 +2935,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$net_revenue    = $product_1_price * $qty_per_product * ( $orders_count / 2 )
 						+ $product_2_price * $qty_per_product * ( $orders_count / 2 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -2865,7 +2967,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -2918,13 +3021,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						+ ( $product_2_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						+ ( $product_3_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -2948,7 +3053,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -3000,13 +3106,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						+ ( $product_2_price + $product_4_price ) * $qty_per_product * ( $orders_count / 8 )
 						+ ( $product_3_price + $product_4_price ) * $qty_per_product * ( $orders_count / 8 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -3030,7 +3138,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -3082,13 +3191,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						+ ( $product_2_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						+ ( $product_3_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -3112,7 +3223,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -3164,13 +3276,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						+ ( $product_2_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						+ ( $product_3_price + $product_4_price ) * $qty_per_product * ( $orders_count / 6 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -3194,7 +3308,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -3246,13 +3361,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						+ ( $product_2_price + $product_4_price ) * $qty_per_product * ( $orders_count * 1 / 10 )
 						+ ( $product_3_price + $product_4_price ) * $qty_per_product * ( $orders_count * 1 / 10 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -3276,7 +3393,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -3331,13 +3449,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						+ ( $product_2_price + $product_4_price ) * $qty_per_product * ( $orders_count * 1 / 7 )
 						+ ( $product_3_price + $product_4_price ) * $qty_per_product * ( $orders_count * 1 / 7 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -3361,7 +3481,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -3419,13 +3540,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						+ ( $product_2_price + $product_4_price ) * $qty_per_product * ( $orders_count * 1 / 7 )
 						+ ( $product_3_price + $product_4_price ) * $qty_per_product * ( $orders_count * 1 / 7 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -3449,7 +3572,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -3507,13 +3631,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						+ ( $product_2_price + $product_4_price ) * $qty_per_product * ( $orders_count * 1 / 10 )
 						+ ( $product_3_price + $product_4_price ) * $qty_per_product * ( $orders_count * 1 / 5 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -3537,7 +3663,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -3598,13 +3725,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						+ ( $product_2_price + $product_4_price ) * $qty_per_product * ( $orders_count * 1 / 8 )
 						+ ( $product_3_price + $product_4_price ) * $qty_per_product * ( $orders_count * 3 / 16 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -3628,7 +3757,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -3692,13 +3822,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						+ ( $product_2_price + $product_4_price ) * $qty_per_product * ( $orders_count * 5 / 34 )
 						+ ( $product_3_price + $product_4_price ) * $qty_per_product * ( $orders_count * 3 / 17 )
 						- $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -3722,7 +3854,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -3990,21 +4123,22 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$num_items_sold = 7 + 5 + 4;
 		$shipping       = $orders_count * $shipping_amnt;
 		$net_revenue    = $o1_net_revenue + $o2_net_revenue + $o3_net_revenue;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue;
 		$new_customers  = 1;
 		// Totals segments.
 		$p1_orders_count   = 2;
 		$p1_num_items_sold = 8;
 		$p1_shipping       = round( $shipping_amnt / $o1_num_items * 4, 6 ) + round( $shipping_amnt / $o3_num_items * 4, 6 );
 		$p1_net_revenue    = 8 * $product_1_price;
-		$p1_gross_revenue  = $p1_net_revenue + $p1_shipping;
+		$p1_total_sales    = $p1_net_revenue + $p1_shipping;
 		$p1_new_customers  = 1;
 
 		$p2_orders_count   = 2;
 		$p2_num_items_sold = 8;
 		$p2_shipping       = round( $shipping_amnt / $o1_num_items * 3, 6 ) + $shipping_amnt;
 		$p2_net_revenue    = 7 * intval( $child_1->get_price() ) + 1 * intval( $child_2->get_price() );
-		$p2_gross_revenue  = $p2_net_revenue + $p2_shipping;
+		$p2_total_sales    = $p2_net_revenue + $p2_shipping;
 		$p2_new_customers  = 0;
 
 		// Interval 3.
@@ -4013,7 +4147,7 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$i3_tot_num_items_sold = 4 + 3 + 4 + 1;
 		$i3_tot_shipping       = $i3_tot_orders_count * $shipping_amnt;
 		$i3_tot_net_revenue    = 4 * $product_1_price + 7 * intval( $child_1->get_price() ) + 1 * intval( $child_2->get_price() );
-		$i3_tot_gross_revenue  = $i3_tot_net_revenue + $i3_tot_shipping;
+		$i3_tot_total_sales    = $i3_tot_net_revenue + $i3_tot_shipping;
 		$i3_tot_new_customers  = 0;
 
 		// I3 Segments.
@@ -4021,14 +4155,14 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$i3_p1_num_items_sold = 4;
 		$i3_p1_shipping       = round( $shipping_amnt / $o1_num_items * 4, 6 );
 		$i3_p1_net_revenue    = $i3_p1_num_items_sold * $product_1_price;
-		$i3_p1_gross_revenue  = $i3_p1_net_revenue + $i3_p1_shipping;
+		$i3_p1_total_sales    = $i3_p1_net_revenue + $i3_p1_shipping;
 		$i3_p1_new_customers  = 0;
 
 		$i3_p2_orders_count   = 2;
 		$i3_p2_num_items_sold = 8;
 		$i3_p2_shipping       = round( $shipping_amnt / $o1_num_items * 3, 6 ) + $shipping_amnt;
 		$i3_p2_net_revenue    = 7 * intval( $child_1->get_price() ) + 1 * intval( $child_2->get_price() );
-		$i3_p2_gross_revenue  = $i3_p2_net_revenue + $i3_p2_shipping;
+		$i3_p2_total_sales    = $i3_p2_net_revenue + $i3_p2_shipping;
 		$i3_p2_new_customers  = 0;
 
 		// Interval 2
@@ -4037,7 +4171,7 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$i2_tot_num_items_sold = 4;
 		$i2_tot_shipping       = $i2_tot_orders_count * $shipping_amnt;
 		$i2_tot_net_revenue    = 4 * $product_1_price;
-		$i2_tot_gross_revenue  = $i2_tot_net_revenue + $i2_tot_shipping;
+		$i2_tot_total_sales    = $i2_tot_net_revenue + $i2_tot_shipping;
 		$i2_tot_new_customers  = 1;
 
 		// I2 Segments.
@@ -4045,21 +4179,22 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$i2_p1_num_items_sold = 4;
 		$i2_p1_shipping       = $shipping_amnt;
 		$i2_p1_net_revenue    = 4 * $product_1_price;
-		$i2_p1_gross_revenue  = $i2_p1_net_revenue + $i2_p1_shipping;
+		$i2_p1_total_sales    = $i2_p1_net_revenue + $i2_p1_shipping;
 		$i2_p1_new_customers  = 1;
 
 		$i2_p2_orders_count   = 0;
 		$i2_p2_num_items_sold = 0;
 		$i2_p2_shipping       = 0;
 		$i2_p2_net_revenue    = 0;
-		$i2_p2_gross_revenue  = $i2_p2_net_revenue + $i2_p2_shipping;
+		$i2_p2_total_sales    = $i2_p2_net_revenue + $i2_p2_shipping;
 		$i2_p2_new_customers  = 0;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => 0,
 				'coupons_count'           => 0,
 				'refunds'                 => 0,
@@ -4078,7 +4213,7 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						'subtotals'     => array(
 							'orders_count'            => $p1_orders_count,
 							'num_items_sold'          => $p1_num_items_sold,
-							'gross_revenue'           => $p1_gross_revenue,
+							'total_sales'             => $p1_total_sales,
 							'coupons'                 => 0,
 							'coupons_count'           => 0,
 							'refunds'                 => 0,
@@ -4097,7 +4232,7 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						'subtotals'     => array(
 							'orders_count'            => $p2_orders_count,
 							'num_items_sold'          => $p2_num_items_sold,
-							'gross_revenue'           => $p2_gross_revenue,
+							'total_sales'             => $p2_total_sales,
 							'coupons'                 => 0,
 							'coupons_count'           => 0,
 							'refunds'                 => 0,
@@ -4116,7 +4251,7 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 						'subtotals'     => array(
 							'orders_count'            => 0,
 							'num_items_sold'          => 0,
-							'gross_revenue'           => 0,
+							'total_sales'             => 0,
 							'coupons'                 => 0,
 							'coupons_count'           => 0,
 							'refunds'                 => 0,
@@ -4141,7 +4276,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $i3_tot_orders_count,
 						'num_items_sold'          => $i3_tot_num_items_sold,
-						'gross_revenue'           => $i3_tot_gross_revenue,
+						'total_sales'             => $i3_tot_total_sales,
+						'gross_sales'             => $i3_tot_net_revenue, // no coupons or refunds.
 						'coupons'                 => 0,
 						'coupons_count'           => 0,
 						'refunds'                 => 0,
@@ -4159,7 +4295,7 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 								'subtotals'     => array(
 									'orders_count'        => $i3_p1_orders_count,
 									'num_items_sold'      => $i3_p1_num_items_sold,
-									'gross_revenue'       => $i3_p1_gross_revenue,
+									'total_sales'         => $i3_p1_total_sales,
 									'coupons'             => 0,
 									'coupons_count'       => 0,
 									'refunds'             => 0,
@@ -4178,7 +4314,7 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 								'subtotals'     => array(
 									'orders_count'        => $i3_p2_orders_count,
 									'num_items_sold'      => $i3_p2_num_items_sold,
-									'gross_revenue'       => $i3_p2_gross_revenue,
+									'total_sales'         => $i3_p2_total_sales,
 									'coupons'             => 0,
 									'coupons_count'       => 0,
 									'refunds'             => 0,
@@ -4197,7 +4333,7 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 								'subtotals'     => array(
 									'orders_count'        => 0,
 									'num_items_sold'      => 0,
-									'gross_revenue'       => 0,
+									'total_sales'         => 0,
 									'coupons'             => 0,
 									'coupons_count'       => 0,
 									'refunds'             => 0,
@@ -4222,7 +4358,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $i2_tot_orders_count,
 						'num_items_sold'          => $i2_tot_num_items_sold,
-						'gross_revenue'           => $i2_tot_gross_revenue,
+						'total_sales'             => $i2_tot_total_sales,
+						'gross_sales'             => $i2_tot_net_revenue, // no coupons or refunds.
 						'coupons'                 => 0,
 						'coupons_count'           => 0,
 						'refunds'                 => 0,
@@ -4240,7 +4377,7 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 								'subtotals'     => array(
 									'orders_count'        => $i2_p1_orders_count,
 									'num_items_sold'      => $i2_p1_num_items_sold,
-									'gross_revenue'       => $i2_p1_gross_revenue,
+									'total_sales'         => $i2_p1_total_sales,
 									'coupons'             => 0,
 									'coupons_count'       => 0,
 									'refunds'             => 0,
@@ -4259,7 +4396,7 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 								'subtotals'     => array(
 									'orders_count'        => $i2_p2_orders_count,
 									'num_items_sold'      => $i2_p2_num_items_sold,
-									'gross_revenue'       => $i2_p2_gross_revenue,
+									'total_sales'         => $i2_p2_total_sales,
 									'coupons'             => 0,
 									'coupons_count'       => 0,
 									'refunds'             => 0,
@@ -4278,7 +4415,7 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 								'subtotals'     => array(
 									'orders_count'        => 0,
 									'num_items_sold'      => 0,
-									'gross_revenue'       => 0,
+									'total_sales'         => 0,
 									'coupons'             => 0,
 									'coupons_count'       => 0,
 									'refunds'             => 0,
@@ -4303,7 +4440,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => 0,
 						'num_items_sold'          => 0,
-						'gross_revenue'           => 0,
+						'total_sales'             => 0,
+						'gross_sales'             => 0,
 						'coupons'                 => 0,
 						'coupons_count'           => 0,
 						'refunds'                 => 0,
@@ -4321,7 +4459,7 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 								'subtotals'     => array(
 									'orders_count'        => 0,
 									'num_items_sold'      => 0,
-									'gross_revenue'       => 0,
+									'total_sales'         => 0,
 									'coupons'             => 0,
 									'coupons_count'       => 0,
 									'refunds'             => 0,
@@ -4340,7 +4478,7 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 								'subtotals'     => array(
 									'orders_count'        => 0,
 									'num_items_sold'      => 0,
-									'gross_revenue'       => 0,
+									'total_sales'         => 0,
 									'coupons'             => 0,
 									'coupons_count'       => 0,
 									'refunds'             => 0,
@@ -4359,7 +4497,7 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 								'subtotals'     => array(
 									'orders_count'        => 0,
 									'num_items_sold'      => 0,
-									'gross_revenue'       => 0,
+									'total_sales'         => 0,
 									'coupons'             => 0,
 									'coupons_count'       => 0,
 									'refunds'             => 0,
@@ -4380,7 +4518,9 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 			'pages'     => 1,
 			'page_no'   => 1,
 		);
-		$actual         = json_decode( wp_json_encode( $data_store->get_data( $query_args ) ), true );
+
+		$actual = json_decode( wp_json_encode( $data_store->get_data( $query_args ) ), true );
+
 		$this->assertEquals( $expected_stats, $actual, 'Segmenting by product, expected: ' . $this->return_print_r( $expected_stats ) . '; actual: ' . $this->return_print_r( $actual ) );
 	}
 
@@ -4535,13 +4675,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$coupons_count  = 0;
 		$shipping       = $orders_count * 10;
 		$net_revenue    = $product_price * $qty_per_product * $orders_count - $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -4565,7 +4707,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -4620,7 +4763,7 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		);
 
 		// Expected Intervals section construction.
-		$expected_intervals = [];
+		$expected_intervals = array();
 		// Even in case this runs exactly at the hour turn second, there should still be 6 intervals:
 		// e.g. 20:30:51 -(minus 5 hours)- 15:30:51 means intervals 15:30:51--15:59:59, 16:00-16:59, 17, 18, 19, 20:00-20:30, i.e. 6 intervals
 		// also if this run exactly at 20:00 -(minus 5 hours)- 15:00, then intervals should be 15:00-15:59, 16, 17, 18, 19, 20:00-20:00.
@@ -4645,7 +4788,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				$coupons             = 0;
 				$shipping            = $orders_count * 10;
 				$net_revenue         = $product_price * $qty_per_product * $orders_count - $coupons;
-				$gross_revenue       = $net_revenue + $shipping;
+				$total_sales         = $net_revenue + $shipping;
+				$gross_sales         = $net_revenue + $coupons;
 				$returning_customers = 1;
 			} elseif ( 1 === $i ) {
 				$orders_count        = 1;
@@ -4653,7 +4797,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				$coupons             = 0;
 				$shipping            = $orders_count * 10;
 				$net_revenue         = $product_price * $qty_per_product * $orders_count - $coupons;
-				$gross_revenue       = $net_revenue + $shipping;
+				$total_sales         = $net_revenue + $shipping;
+				$gross_sales         = $net_revenue + $coupons;
 				$returning_customers = 1;
 			} else {
 				$orders_count        = 0;
@@ -4661,7 +4806,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				$coupons             = 0;
 				$shipping            = $orders_count * 10;
 				$net_revenue         = $product_price * $qty_per_product * $orders_count - $coupons;
-				$gross_revenue       = $net_revenue + $shipping;
+				$total_sales         = $net_revenue + $shipping;
+				$gross_sales         = $net_revenue + $coupons;
 				$returning_customers = 0;
 			}
 
@@ -4674,7 +4820,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				'subtotals'      => array(
 					'orders_count'            => $orders_count,
 					'num_items_sold'          => $num_items_sold,
-					'gross_revenue'           => $gross_revenue,
+					'total_sales'             => $total_sales,
+					'gross_sales'             => $gross_sales,
 					'coupons'                 => $coupons,
 					'coupons_count'           => $coupons_count,
 					'refunds'                 => 0,
@@ -4698,13 +4845,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$coupons        = 0;
 		$shipping       = $orders_count * 10;
 		$net_revenue    = $product_price * $qty_per_product * $orders_count - $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -4763,7 +4912,7 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		);
 
 		// Expected Intervals section construction.
-		$expected_intervals = [];
+		$expected_intervals = array();
 		$interval_count     = $hour_offset + 1;
 		for ( $i = 0; $i < $interval_count; $i ++ ) {
 			if ( 0 === $i ) {
@@ -4785,7 +4934,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				$coupons             = 0;
 				$shipping            = $orders_count * 10;
 				$net_revenue         = $product_price * $qty_per_product * $orders_count - $coupons;
-				$gross_revenue       = $net_revenue + $shipping;
+				$total_sales         = $net_revenue + $shipping;
+				$gross_sales         = $net_revenue + $coupons;
 				$returning_customers = 1;
 			} elseif ( 1 === $i ) {
 				$orders_count        = 1;
@@ -4793,7 +4943,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				$coupons             = 0;
 				$shipping            = $orders_count * 10;
 				$net_revenue         = $product_price * $qty_per_product * $orders_count - $coupons;
-				$gross_revenue       = $net_revenue + $shipping;
+				$total_sales         = $net_revenue + $shipping;
+				$gross_sales         = $net_revenue + $coupons;
 				$returning_customers = 1;
 			} else {
 				$orders_count        = 0;
@@ -4801,7 +4952,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				$coupons             = 0;
 				$shipping            = $orders_count * 10;
 				$net_revenue         = $product_price * $qty_per_product * $orders_count - $coupons;
-				$gross_revenue       = $net_revenue + $shipping;
+				$total_sales         = $net_revenue + $shipping;
+				$gross_sales         = $net_revenue + $coupons;
 				$returning_customers = 0;
 			}
 
@@ -4814,7 +4966,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				'subtotals'      => array(
 					'orders_count'            => $orders_count,
 					'num_items_sold'          => $num_items_sold,
-					'gross_revenue'           => $gross_revenue,
+					'total_sales'             => $total_sales,
+					'gross_sales'             => $gross_sales,
 					'coupons'                 => $coupons,
 					'coupons_count'           => $coupons_count,
 					'refunds'                 => 0,
@@ -4838,13 +4991,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$coupons        = 0;
 		$shipping       = $orders_count * 10;
 		$net_revenue    = $product_price * $qty_per_product * $orders_count - $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -4914,7 +5069,7 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		);
 
 		// Expected Intervals section construction.
-		$expected_intervals = [];
+		$expected_intervals = array();
 		$interval_count     = 11;
 		for ( $i = 0; $i < $interval_count; $i ++ ) {
 			if ( 0 === $i ) {
@@ -4936,7 +5091,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				$coupons             = 0;
 				$shipping            = $orders_count * 10;
 				$net_revenue         = $product_price * $qty_per_product * $orders_count - $coupons;
-				$gross_revenue       = $net_revenue + $shipping;
+				$total_sales         = $net_revenue + $shipping;
+				$gross_sales         = $net_revenue + $coupons;
 				$returning_customers = 1;
 			} elseif ( 1 === $i ) {
 				$orders_count        = 1;
@@ -4944,7 +5100,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				$coupons             = 0;
 				$shipping            = $orders_count * 10;
 				$net_revenue         = $product_price * $qty_per_product * $orders_count - $coupons;
-				$gross_revenue       = $net_revenue + $shipping;
+				$total_sales         = $net_revenue + $shipping;
+				$gross_sales         = $net_revenue + $coupons;
 				$returning_customers = 1;
 			} else {
 				$orders_count        = 0;
@@ -4952,7 +5109,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				$coupons             = 0;
 				$shipping            = $orders_count * 10;
 				$net_revenue         = $product_price * $qty_per_product * $orders_count - $coupons;
-				$gross_revenue       = $net_revenue + $shipping;
+				$total_sales         = $net_revenue + $shipping;
+				$gross_sales         = $net_revenue + $coupons;
 				$returning_customers = 0;
 			}
 
@@ -4965,7 +5123,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				'subtotals'      => array(
 					'orders_count'            => $orders_count,
 					'num_items_sold'          => $num_items_sold,
-					'gross_revenue'           => $gross_revenue,
+					'total_sales'             => $total_sales,
+					'gross_sales'             => $gross_sales,
 					'coupons'                 => $coupons,
 					'coupons_count'           => $coupons_count,
 					'refunds'                 => 0,
@@ -4989,13 +5148,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$coupons        = 0;
 		$shipping       = $orders_count * 10;
 		$net_revenue    = $product_price * $qty_per_product * $orders_count - $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -5031,7 +5192,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -5086,7 +5248,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -5123,7 +5286,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -5310,13 +5474,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$coupons_count  = 0;
 		$shipping       = $orders_count * 10;
 		$net_revenue    = $product_price * $qty_per_product * $orders_count - $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -5340,7 +5506,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 					'subtotals'      => array(
 						'orders_count'            => $orders_count,
 						'num_items_sold'          => $num_items_sold,
-						'gross_revenue'           => $gross_revenue,
+						'total_sales'             => $total_sales,
+						'gross_sales'             => $gross_sales,
 						'coupons'                 => $coupons,
 						'coupons_count'           => $coupons_count,
 						'refunds'                 => 0,
@@ -5395,7 +5562,7 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		);
 
 		// Expected Intervals section construction.
-		$expected_intervals = [];
+		$expected_intervals = array();
 		// Even in case this runs exactly at the hour turn second, there should still be 6 intervals:
 		// e.g. 20:30:51 -(minus 5 hours)- 15:30:51 means intervals 15:30:51--15:59:59, 16:00-16:59, 17, 18, 19, 20:00-20:30, i.e. 6 intervals
 		// also if this run exactly at 20:00 -(minus 5 hours)- 15:00, then intervals should be 15:00-15:59, 16, 17, 18, 19, 20:00-20:00.
@@ -5420,7 +5587,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				$coupons             = 0;
 				$shipping            = $orders_count * 10;
 				$net_revenue         = $product_price * $qty_per_product * $orders_count - $coupons;
-				$gross_revenue       = $net_revenue + $shipping;
+				$total_sales         = $net_revenue + $shipping;
+				$gross_sales         = $net_revenue + $coupons;
 				$returning_customers = 1;
 			} elseif ( 0 === $i ) {
 				$orders_count        = count( $order_during_this_['hour'] );
@@ -5428,7 +5596,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				$coupons             = 0;
 				$shipping            = $orders_count * 10;
 				$net_revenue         = $product_price * $qty_per_product * $orders_count - $coupons;
-				$gross_revenue       = $net_revenue + $shipping;
+				$total_sales         = $net_revenue + $shipping;
+				$gross_sales         = $net_revenue + $coupons;
 				$returning_customers = 1;
 			} else {
 				$orders_count        = 0;
@@ -5436,7 +5605,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				$coupons             = 0;
 				$shipping            = $orders_count * 10;
 				$net_revenue         = $product_price * $qty_per_product * $orders_count - $coupons;
-				$gross_revenue       = $net_revenue + $shipping;
+				$total_sales         = $net_revenue + $shipping;
+				$gross_sales         = $net_revenue + $coupons;
 				$returning_customers = 0;
 			}
 
@@ -5449,7 +5619,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				'subtotals'      => array(
 					'orders_count'            => $orders_count,
 					'num_items_sold'          => $num_items_sold,
-					'gross_revenue'           => $gross_revenue,
+					'total_sales'             => $total_sales,
+					'gross_sales'             => $gross_sales,
 					'coupons'                 => $coupons,
 					'coupons_count'           => $coupons_count,
 					'refunds'                 => 0,
@@ -5490,13 +5661,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$coupons        = 0;
 		$shipping       = $orders_count * 10;
 		$net_revenue    = $product_price * $qty_per_product * $orders_count - $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -5575,7 +5748,7 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		 *
 		 * To change ordering by orders_count, just pop last two and push them to the front (aka unshift in php).
 		 */
-		$expected_intervals = [];
+		$expected_intervals = array();
 		$interval_count     = $hour_offset + 1;
 		for ( $i = $interval_count - 1; $i >= 0; $i -- ) {
 			if ( 0 === $i ) {
@@ -5597,7 +5770,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				$coupons             = 0;
 				$shipping            = $orders_count * 10;
 				$net_revenue         = $product_price * $qty_per_product * $orders_count - $coupons;
-				$gross_revenue       = $net_revenue + $shipping;
+				$total_sales         = $net_revenue + $shipping;
+				$gross_sales         = $net_revenue + $coupons;
 				$returning_customers = 1;
 			} elseif ( 1 === $i ) {
 				$orders_count        = count( $order_during_this_['hour-1'] );
@@ -5605,7 +5779,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				$coupons             = 0;
 				$shipping            = $orders_count * 10;
 				$net_revenue         = $product_price * $qty_per_product * $orders_count - $coupons;
-				$gross_revenue       = $net_revenue + $shipping;
+				$total_sales         = $net_revenue + $shipping;
+				$gross_sales         = $net_revenue + $coupons;
 				$returning_customers = 1;
 			} else {
 				$orders_count        = 0;
@@ -5613,7 +5788,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				$coupons             = 0;
 				$shipping            = $orders_count * 10;
 				$net_revenue         = $product_price * $qty_per_product * $orders_count - $coupons;
-				$gross_revenue       = $net_revenue + $shipping;
+				$total_sales         = $net_revenue + $shipping;
+				$gross_sales         = $net_revenue + $coupons;
 				$returning_customers = 0;
 			}
 
@@ -5626,7 +5802,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				'subtotals'      => array(
 					'orders_count'            => $orders_count,
 					'num_items_sold'          => $num_items_sold,
-					'gross_revenue'           => $gross_revenue,
+					'total_sales'             => $total_sales,
+					'gross_sales'             => $gross_sales,
 					'coupons'                 => $coupons,
 					'coupons_count'           => $coupons_count,
 					'refunds'                 => 0,
@@ -5654,13 +5831,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$coupons        = 0;
 		$shipping       = $orders_count * 10;
 		$net_revenue    = $product_price * $qty_per_product * $orders_count - $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -5744,7 +5923,7 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		 *
 		 * so last two need to be put first (last one second, second last one first).
 		 */
-		$expected_intervals = [];
+		$expected_intervals = array();
 		$interval_count     = 11;
 		for ( $i = $interval_count - 1; $i >= 0; $i -- ) {
 			if ( 0 === $i ) {
@@ -5766,7 +5945,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				$coupons             = 0;
 				$shipping            = $orders_count * 10;
 				$net_revenue         = $product_price * $qty_per_product * $orders_count - $coupons;
-				$gross_revenue       = $net_revenue + $shipping;
+				$total_sales         = $net_revenue + $shipping;
+				$gross_sales         = $net_revenue + $coupons;
 				$returning_customers = 1;
 			} elseif ( 1 === $i ) {
 				$orders_count        = count( $order_during_this_['hour-1'] );
@@ -5774,7 +5954,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				$coupons             = 0;
 				$shipping            = $orders_count * 10;
 				$net_revenue         = $product_price * $qty_per_product * $orders_count - $coupons;
-				$gross_revenue       = $net_revenue + $shipping;
+				$total_sales         = $net_revenue + $shipping;
+				$gross_sales         = $net_revenue + $coupons;
 				$returning_customers = 1;
 			} else {
 				$orders_count        = 0;
@@ -5782,7 +5963,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				$coupons             = 0;
 				$shipping            = $orders_count * 10;
 				$net_revenue         = $product_price * $qty_per_product * $orders_count - $coupons;
-				$gross_revenue       = $net_revenue + $shipping;
+				$total_sales         = $net_revenue + $shipping;
+				$gross_sales         = $net_revenue + $coupons;
 				$returning_customers = 0;
 			}
 
@@ -5795,7 +5977,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 				'subtotals'      => array(
 					'orders_count'            => $orders_count,
 					'num_items_sold'          => $num_items_sold,
-					'gross_revenue'           => $gross_revenue,
+					'total_sales'             => $total_sales,
+					'gross_sales'             => $gross_sales,
 					'coupons'                 => $coupons,
 					'coupons_count'           => $coupons_count,
 					'refunds'                 => 0,
@@ -5823,13 +6006,15 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$coupons        = 0;
 		$shipping       = $orders_count * 10;
 		$net_revenue    = $product_price * $qty_per_product * $orders_count - $coupons;
-		$gross_revenue  = $net_revenue + $shipping;
+		$total_sales    = $net_revenue + $shipping;
+		$gross_sales    = $net_revenue + $coupons;
 
 		$expected_stats = array(
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -5865,7 +6050,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -5920,7 +6106,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -5958,7 +6145,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 			'totals'    => array(
 				'orders_count'            => $orders_count,
 				'num_items_sold'          => $num_items_sold,
-				'gross_revenue'           => $gross_revenue,
+				'total_sales'             => $total_sales,
+				'gross_sales'             => $gross_sales,
 				'coupons'                 => $coupons,
 				'coupons_count'           => $coupons_count,
 				'refunds'                 => 0,
@@ -6029,8 +6217,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 
 		WC_Helper_Queue::run_all_pending();
 
-		$start_time  = date( 'Y-m-d H:00:00', $order_0->get_date_created()->getOffsetTimestamp() );
-		$end_time    = date( 'Y-m-d H:59:59', $order_0->get_date_created()->getOffsetTimestamp() );
+		$start_time  = gmdate( 'Y-m-d H:00:00', $order_0->get_date_created()->getOffsetTimestamp() );
+		$end_time    = gmdate( 'Y-m-d H:59:59', $order_0->get_date_created()->getOffsetTimestamp() );
 		$query_args  = array(
 			'interval' => 'hour',
 			'after'    => $start_time,
@@ -6050,8 +6238,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		WC_Helper_Queue::run_all_pending();
 
 		// Time frame includes both orders -> customer is a new customer.
-		$start_time = date( 'Y-m-d H:00:00', $order_0->get_date_created()->getOffsetTimestamp() );
-		$end_time   = date( 'Y-m-d H:59:59', $order_1->get_date_created()->getOffsetTimestamp() );
+		$start_time = gmdate( 'Y-m-d H:00:00', $order_0->get_date_created()->getOffsetTimestamp() );
+		$end_time   = gmdate( 'Y-m-d H:59:59', $order_1->get_date_created()->getOffsetTimestamp() );
 		$query_args = array(
 			'interval' => 'hour',
 			'after'    => $start_time,
@@ -6066,8 +6254,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$after_order_0 = new DateTime();
 		$after_order_0->setTimestamp( $order_0_time + 1 );
 
-		$start_time = date( 'Y-m-d H:i:s', $order_0_time + 1 );
-		$end_time   = date( 'Y-m-d H:59:59', $order_1->get_date_created()->getOffsetTimestamp() );
+		$start_time = gmdate( 'Y-m-d H:i:s', $order_0_time + 1 );
+		$end_time   = gmdate( 'Y-m-d H:59:59', $order_1->get_date_created()->getOffsetTimestamp() );
 		$query_args = array(
 			'interval' => 'hour',
 			'after'    => $start_time,
@@ -6090,8 +6278,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		WC_Helper_Queue::run_all_pending();
 
 		// Time frame includes second and third order -> there is one returning customer.
-		$start_time  = date( 'Y-m-d H:i:s', $order_0_time + 1 );
-		$end_time    = date( 'Y-m-d H:59:59', $order_2->get_date_created()->getOffsetTimestamp() );
+		$start_time  = gmdate( 'Y-m-d H:i:s', $order_0_time + 1 );
+		$end_time    = gmdate( 'Y-m-d H:59:59', $order_2->get_date_created()->getOffsetTimestamp() );
 		$query_args  = array(
 			'interval' => 'day', // to skip cache.
 			'after'    => $start_time,
@@ -6140,8 +6328,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 
 		WC_Helper_Queue::run_all_pending();
 
-		$start_time  = date( 'Y-m-d H:00:00', $order_0->get_date_created()->getOffsetTimestamp() );
-		$end_time    = date( 'Y-m-d H:59:59', $order_0->get_date_created()->getOffsetTimestamp() );
+		$start_time  = gmdate( 'Y-m-d H:00:00', $order_0->get_date_created()->getOffsetTimestamp() );
+		$end_time    = gmdate( 'Y-m-d H:59:59', $order_0->get_date_created()->getOffsetTimestamp() );
 		$query_args  = array(
 			'interval' => 'hour',
 			'after'    => $start_time,
@@ -6161,8 +6349,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		WC_Helper_Queue::run_all_pending();
 
 		// Time frame includes both orders -> customer is a new customer.
-		$start_time = date( 'Y-m-d H:00:00', $order_0->get_date_created()->getOffsetTimestamp() );
-		$end_time   = date( 'Y-m-d H:59:59', $order_1->get_date_created()->getOffsetTimestamp() );
+		$start_time = gmdate( 'Y-m-d H:00:00', $order_0->get_date_created()->getOffsetTimestamp() );
+		$end_time   = gmdate( 'Y-m-d H:59:59', $order_1->get_date_created()->getOffsetTimestamp() );
 		$query_args = array(
 			'interval' => 'hour',
 			'after'    => $start_time,
@@ -6177,8 +6365,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		$after_order_0 = new DateTime();
 		$after_order_0->setTimestamp( $order_0_time + 1 );
 
-		$start_time = date( 'Y-m-d H:i:s', $order_0_time + 1 );
-		$end_time   = date( 'Y-m-d H:59:59', $order_1->get_date_created()->getOffsetTimestamp() );
+		$start_time = gmdate( 'Y-m-d H:i:s', $order_0_time + 1 );
+		$end_time   = gmdate( 'Y-m-d H:59:59', $order_1->get_date_created()->getOffsetTimestamp() );
 		$query_args = array(
 			'interval' => 'hour',
 			'after'    => $start_time,
@@ -6201,8 +6389,8 @@ class WC_Tests_Reports_Orders_Stats extends WC_Unit_Test_Case {
 		WC_Helper_Queue::run_all_pending();
 
 		// Time frame includes second and third order -> there is one returning customer.
-		$start_time  = date( 'Y-m-d H:i:s', $order_0_time + 1 );
-		$end_time    = date( 'Y-m-d H:59:59', $order_2->get_date_created()->getOffsetTimestamp() );
+		$start_time  = gmdate( 'Y-m-d H:i:s', $order_0_time + 1 );
+		$end_time    = gmdate( 'Y-m-d H:59:59', $order_2->get_date_created()->getOffsetTimestamp() );
 		$query_args  = array(
 			'interval' => 'day', // to skip cache.
 			'after'    => $start_time,

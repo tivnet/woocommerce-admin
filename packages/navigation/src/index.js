@@ -1,11 +1,10 @@
-/** @format */
 /**
  * External dependencies
  */
 import { addQueryArgs } from '@wordpress/url';
 import { parse } from 'qs';
 import { pick, uniq } from 'lodash';
-import { getSetting } from '@woocommerce/wc-admin-settings';
+import { applyFilters } from '@wordpress/hooks';
 
 /**
  * Internal dependencies
@@ -25,17 +24,9 @@ export * from './filters';
 import * as navUtils from './index';
 
 /**
- * Returns a string with the site's wp-admin URL appended. JS version of `admin_url`.
- *
- * @param {String} path Relative path.
- * @return {String} Full admin URL.
- */
-export const getAdminLink = path => getSetting( 'adminUrl', '' ) + path;
-
-/**
  * Get the current path from history.
  *
- * @return {String}  Current path.
+ * @return {string}  Current path.
  */
 export const getPath = () => getHistory().location.pathname;
 
@@ -46,8 +37,17 @@ export const getPath = () => getHistory().location.pathname;
  * @param {Object} query Query containing the parameters.
  * @return {Object} Object containing the persisted queries.
  */
-export const getPersistedQuery = ( query = navUtils.getQuery() ) =>
-	pick( query, [ 'period', 'compare', 'before', 'after', 'interval', 'type' ] );
+export const getPersistedQuery = ( query = navUtils.getQuery() ) => {
+	const params = applyFilters( 'woocommerce_admin_persisted_queries', [
+		'period',
+		'compare',
+		'before',
+		'after',
+		'interval',
+		'type',
+	] );
+	return pick( query, params );
+};
 
 /**
  * Get an array of IDs from a comma-separated query parameter.
@@ -59,7 +59,7 @@ export function getIdsFromQuery( queryString = '' ) {
 	return uniq(
 		queryString
 			.split( ',' )
-			.map( id => parseInt( id, 10 ) )
+			.map( ( id ) => parseInt( id, 10 ) )
 			.filter( Boolean )
 	);
 }
@@ -72,29 +72,39 @@ export function getIdsFromQuery( queryString = '' ) {
  */
 export function getSearchWords( query = navUtils.getQuery() ) {
 	if ( typeof query !== 'object' ) {
-		throw new Error( 'Invalid parameter passed to getSearchWords, it expects an object or no parameters.' );
+		throw new Error(
+			'Invalid parameter passed to getSearchWords, it expects an object or no parameters.'
+		);
 	}
 	const { search } = query;
 	if ( ! search ) {
 		return [];
 	}
 	if ( typeof search !== 'string' ) {
-		throw new Error( 'Invalid \'search\' type. getSearchWords expects query\'s \'search\' property to be a string.' );
+		throw new Error(
+			"Invalid 'search' type. getSearchWords expects query's 'search' property to be a string."
+		);
 	}
-	return search.split( ',' ).map( searchWord => searchWord.replace( '%2C', ',' ) );
+	return search
+		.split( ',' )
+		.map( ( searchWord ) => searchWord.replace( '%2C', ',' ) );
 }
 
 /**
  * Return a URL with set query parameters.
  *
  * @param {Object} query object of params to be updated.
- * @param {String} path Relative path (defaults to current path).
+ * @param {string} path Relative path (defaults to current path).
  * @param {Object} currentQuery object of current query params (defaults to current querystring).
- * @return {String}  Updated URL merging query params into existing params.
+ * @return {string}  Updated URL merging query params into existing params.
  */
-export function getNewPath( query, path = getPath(), currentQuery = getQuery() ) {
+export function getNewPath(
+	query,
+	path = getPath(),
+	currentQuery = getQuery()
+) {
 	const args = { page: 'wc-admin', ...currentQuery, ...query };
-	if ( '/' !== path ) {
+	if ( path !== '/' ) {
 		args.path = path;
 	}
 	return addQueryArgs( 'admin.php', args );
@@ -119,21 +129,27 @@ export function getQuery() {
  * @param {string} param The parameter in the querystring which should be updated (ex `page`, `per_page`)
  * @param {string} path Relative path (defaults to current path).
  * @param {string} query object of current query params (defaults to current querystring).
- * @return {function} A callback which will update `param` to the passed value when called.
+ * @return {Function} A callback which will update `param` to the passed value when called.
  */
 export function onQueryChange( param, path = getPath(), query = getQuery() ) {
 	switch ( param ) {
 		case 'sort':
-			return ( key, dir ) => updateQueryString( { orderby: key, order: dir }, path, query );
+			return ( key, dir ) =>
+				updateQueryString( { orderby: key, order: dir }, path, query );
 		case 'compare':
 			return ( key, queryParam, ids ) =>
-				updateQueryString( {
-					[ queryParam ]: `compare-${ key }`,
-					[ key ]: ids,
-					search: undefined,
-				}, path, query );
+				updateQueryString(
+					{
+						[ queryParam ]: `compare-${ key }`,
+						[ key ]: ids,
+						search: undefined,
+					},
+					path,
+					query
+				);
 		default:
-			return value => updateQueryString( { [ param ]: value }, path, query );
+			return ( value ) =>
+				updateQueryString( { [ param ]: value }, path, query );
 	}
 }
 
@@ -141,10 +157,14 @@ export function onQueryChange( param, path = getPath(), query = getQuery() ) {
  * Updates the query parameters of the current page.
  *
  * @param {Object} query object of params to be updated.
- * @param {String} path Relative path (defaults to current path).
+ * @param {string} path Relative path (defaults to current path).
  * @param {Object} currentQuery object of current query params (defaults to current querystring).
  */
-export function updateQueryString( query, path = getPath(), currentQuery = getQuery() ) {
+export function updateQueryString(
+	query,
+	path = getPath(),
+	currentQuery = getQuery()
+) {
 	const newPath = getNewPath( query, path, currentQuery );
 	getHistory().push( newPath );
 }

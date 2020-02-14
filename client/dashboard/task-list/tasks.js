@@ -1,7 +1,5 @@
 /**
  * External dependencies
- *
- * @format
  */
 
 import { __ } from '@wordpress/i18n';
@@ -11,53 +9,78 @@ import { get } from 'lodash';
 /**
  * WooCommerce dependencies
  */
-import { getSetting } from '@woocommerce/wc-admin-settings';
-import { updateQueryString, getAdminLink } from '@woocommerce/navigation';
+import { getAdminLink, getSetting } from '@woocommerce/wc-admin-settings';
+import { updateQueryString } from '@woocommerce/navigation';
 
 /**
  * Internal dependencies
  */
 import Appearance from './tasks/appearance';
 import Connect from './tasks/connect';
+import { getProductIdsForCart } from 'dashboard/utils';
 import Products from './tasks/products';
 import Shipping from './tasks/shipping';
 import Tax from './tasks/tax';
 import Payments from './tasks/payments';
 
-export function getTasks( { profileItems, options, query } ) {
+export function getAllTasks( {
+	profileItems,
+	options,
+	query,
+	toggleCartModal,
+} ) {
 	const {
-		customLogo,
-		hasHomepage,
 		hasPhysicalProducts,
 		hasProducts,
+		isAppearanceComplete,
 		isTaxComplete,
 		shippingZonesCount,
 	} = getSetting( 'onboarding', {
-		customLogo: '',
-		hasHomePage: false,
 		hasPhysicalProducts: false,
 		hasProducts: false,
+		isAppearanceComplete: false,
 		isTaxComplete: false,
 		shippingZonesCount: 0,
 	} );
 
+	const productIds = getProductIdsForCart( profileItems, true );
+	const remainingProductIds = getProductIdsForCart( profileItems );
+
 	const paymentsCompleted = get(
 		options,
-		[ 'woocommerce_onboarding_payments', 'completed' ],
+		[ 'woocommerce_task_list_payments', 'completed' ],
 		false
 	);
 
 	const tasks = [
 		{
+			key: 'purchase',
+			title: __( 'Purchase & install extensions', 'woocommerce-admin' ),
+			content: __(
+				'Purchase, install, and manage your extensions directly from your dashboard',
+				'wooocommerce-admin'
+			),
+			icon: 'extension',
+			container: null,
+			onClick: () =>
+				remainingProductIds.length ? toggleCartModal() : null,
+			visible: productIds.length,
+			completed: ! remainingProductIds.length,
+		},
+		{
 			key: 'connect',
-			title: __( 'Connect your store to WooCommerce.com', 'woocommerce-admin' ),
+			title: __(
+				'Connect your store to WooCommerce.com',
+				'woocommerce-admin'
+			),
 			content: __(
 				'Install and manage your extensions directly from your Dashboard',
 				'wooocommerce-admin'
 			),
 			icon: 'extension',
 			container: <Connect query={ query } />,
-			visible: profileItems.items_purchased && ! profileItems.wccom_connected,
+			visible:
+				profileItems.items_purchased && ! profileItems.wccom_connected,
 			completed: profileItems.wccom_connected,
 		},
 		{
@@ -75,21 +98,28 @@ export function getTasks( { profileItems, options, query } ) {
 		{
 			key: 'appearance',
 			title: __( 'Personalize your store', 'woocommerce-admin' ),
-			content: __( 'Create a custom homepage and upload your logo', 'wooocommerce-admin' ),
+			content: __(
+				'Create a custom homepage and upload your logo',
+				'wooocommerce-admin'
+			),
 			icon: 'palette',
 			container: <Appearance />,
-			completed: customLogo && hasHomepage,
+			completed: isAppearanceComplete,
 			visible: true,
 		},
 		{
 			key: 'shipping',
 			title: __( 'Set up shipping', 'woocommerce-admin' ),
-			content: __( 'Configure some basic shipping rates to get started', 'wooocommerce-admin' ),
+			content: __(
+				'Configure some basic shipping rates to get started',
+				'wooocommerce-admin'
+			),
 			icon: 'local_shipping',
 			container: <Shipping />,
 			completed: shippingZonesCount > 0,
 			visible:
-				( profileItems.product_types && profileItems.product_types.includes( 'physical' ) ) ||
+				( profileItems.product_types &&
+					profileItems.product_types.includes( 'physical' ) ) ||
 				hasPhysicalProducts,
 		},
 		{
@@ -116,7 +146,9 @@ export function getTasks( { profileItems, options, query } ) {
 			completed: paymentsCompleted,
 			onClick: () => {
 				if ( paymentsCompleted ) {
-					window.location = getAdminLink( 'admin.php?page=wc-settings&tab=checkout' );
+					window.location = getAdminLink(
+						'admin.php?page=wc-settings&tab=checkout'
+					);
 					return;
 				}
 				updateQueryString( { task: 'payments' } );
@@ -125,5 +157,9 @@ export function getTasks( { profileItems, options, query } ) {
 		},
 	];
 
-	return applyFilters( 'woocommerce_onboarding_task_list', tasks, query );
+	return applyFilters(
+		'woocommerce_admin_onboarding_task_list',
+		tasks,
+		query
+	);
 }

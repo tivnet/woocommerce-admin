@@ -1,4 +1,3 @@
-/** @format */
 /**
  * External dependencies
  */
@@ -10,7 +9,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { getSetting } from '@woocommerce/wc-admin-settings';
 
 /**
- * Internal depdencies
+ * Internal dependencies
  */
 import { SelectControl, TextControl } from '@woocommerce/components';
 
@@ -25,10 +24,16 @@ export function validateStoreAddress( values ) {
 	const errors = {};
 
 	if ( ! values.addressLine1.length ) {
-		errors.addressLine1 = __( 'Please add an address', 'woocommerce-admin' );
+		errors.addressLine1 = __(
+			'Please add an address',
+			'woocommerce-admin'
+		);
 	}
 	if ( ! values.countryState.length ) {
-		errors.countryState = __( 'Please select a country and state', 'woocommerce-admin' );
+		errors.countryState = __(
+			'Please select a country and state',
+			'woocommerce-admin'
+		);
 	}
 	if ( ! values.city.length ) {
 		errors.city = __( 'Please add a city', 'woocommerce-admin' );
@@ -56,10 +61,13 @@ export function getCountryStateOptions() {
 			return acc;
 		}
 
-		const countryStates = country.states.map( state => {
+		const countryStates = country.states.map( ( state ) => {
 			return {
 				key: country.code + ':' + state.code,
-				label: decodeEntities( country.name ) + ' -- ' + decodeEntities( state.name ),
+				label:
+					decodeEntities( country.name ) +
+					' -- ' +
+					decodeEntities( state.name ),
 			};
 		} );
 
@@ -75,57 +83,89 @@ export function getCountryStateOptions() {
  * Get the autofill countryState fields and set value from filtered options.
  *
  * @param {Array} options Array of filterable options.
- * @param {String} countryState The value of the countryState field.
+ * @param {string} countryState The value of the countryState field.
  * @param {Function} setValue Set value of the countryState input.
  * @return {Object} React component.
  */
-export function getCountryStateAutofill( options, countryState, setValue ) {
+export function useGetCountryStateAutofill( options, countryState, setValue ) {
 	const [ autofillCountry, setAutofillCountry ] = useState( '' );
 	const [ autofillState, setAutofillState ] = useState( '' );
 
-	useEffect(
-		() => {
-			let filteredOptions = [];
-			if ( autofillState.length || autofillCountry.length ) {
-				const countrySearch = new RegExp(
-					escapeRegExp( autofillCountry.replace( /\s/g, '' ) ),
-					'i'
+	useEffect( () => {
+		let filteredOptions = [];
+		const countrySearch = new RegExp(
+			escapeRegExp( autofillCountry ),
+			'i'
+		);
+		if ( autofillState.length || autofillCountry.length ) {
+			filteredOptions = options.filter( ( option ) =>
+				countrySearch.test( option.label )
+			);
+		}
+		if ( autofillCountry.length && autofillState.length ) {
+			const stateSearch = new RegExp(
+				escapeRegExp( autofillState.replace( /\s/g, '' ) ),
+				'i'
+			);
+			filteredOptions = filteredOptions.filter( ( option ) =>
+				stateSearch.test(
+					option.label.replace( '-', '' ).replace( /\s/g, '' )
+				)
+			);
+
+			if ( filteredOptions.length > 1 ) {
+				let countryKeyOptions = [];
+				countryKeyOptions = filteredOptions.filter( ( option ) =>
+					countrySearch.test( option.key )
 				);
-				filteredOptions = options.filter( option =>
-					countrySearch.test( option.label.replace( '-', '' ).replace( /\s/g, '' ) )
+
+				if ( countryKeyOptions.length > 0 ) {
+					filteredOptions = countryKeyOptions;
+				}
+			}
+
+			if ( filteredOptions.length > 1 ) {
+				let stateKeyOptions = [];
+				stateKeyOptions = filteredOptions.filter( ( option ) =>
+					stateSearch.test( option.key )
 				);
+
+				if ( stateKeyOptions.length === 1 ) {
+					filteredOptions = stateKeyOptions;
+				}
 			}
-			if ( autofillCountry.length && autofillState.length ) {
-				const stateSearch = new RegExp( escapeRegExp( autofillState.replace( /\s/g, '' ) ), 'i' );
-				filteredOptions = filteredOptions.filter( option =>
-					stateSearch.test( option.label.replace( '-', '' ).replace( /\s/g, '' ) )
-				);
-			}
-			if ( 1 === filteredOptions.length && countryState !== filteredOptions[ 0 ].key ) {
-				setValue( 'countryState', filteredOptions[ 0 ].key );
-			}
-		},
-		[ autofillCountry, autofillState ]
-	);
+		}
+
+		if (
+			filteredOptions.length === 1 &&
+			countryState !== filteredOptions[ 0 ].key
+		) {
+			setValue( 'countryState', filteredOptions[ 0 ].key );
+		}
+	}, [ autofillCountry, autofillState ] );
 
 	return (
 		<Fragment>
 			<input
-				onChange={ event => setAutofillCountry( event.target.value ) }
+				onChange={ ( event ) =>
+					setAutofillCountry( event.target.value )
+				}
 				value={ autofillCountry }
 				name="country"
 				type="text"
 				className="woocommerce-select-control__autofill-input"
 				tabIndex="-1"
+				autoComplete="country"
 			/>
 
 			<input
-				onChange={ event => setAutofillState( event.target.value ) }
+				onChange={ ( event ) => setAutofillState( event.target.value ) }
 				value={ autofillState }
 				name="state"
 				type="text"
 				className="woocommerce-select-control__autofill-input"
 				tabIndex="-1"
+				autoComplete="address-level1"
 			/>
 		</Fragment>
 	);
@@ -140,18 +180,25 @@ export function getCountryStateAutofill( options, countryState, setValue ) {
 export function StoreAddress( props ) {
 	const { getInputProps, setValue } = props;
 	const countryStateOptions = useMemo( () => getCountryStateOptions(), [] );
+	const countryStateAutofill = useGetCountryStateAutofill(
+		countryStateOptions,
+		getInputProps( 'countryState' ).value,
+		setValue
+	);
 
 	return (
 		<div className="woocommerce-store-address-fields">
 			<TextControl
 				label={ __( 'Address line 1', 'woocommerce-admin' ) }
 				required
+				autoComplete="address-line1"
 				{ ...getInputProps( 'addressLine1' ) }
 			/>
 
 			<TextControl
 				label={ __( 'Address line 2 (optional)', 'woocommerce-admin' ) }
 				required
+				autoComplete="address-line2"
 				{ ...getInputProps( 'addressLine2' ) }
 			/>
 
@@ -159,25 +206,26 @@ export function StoreAddress( props ) {
 				label={ __( 'Country / State', 'woocommerce-admin' ) }
 				required
 				options={ countryStateOptions }
+				excludeSelectedOptions={ false }
+				showAllOnFocus
 				isSearchable
 				{ ...getInputProps( 'countryState' ) }
+				controlClassName={ getInputProps( 'countryState' ).className }
 			>
-				{ getCountryStateAutofill(
-					countryStateOptions,
-					getInputProps( 'countryState' ).value,
-					setValue
-				) }
+				{ countryStateAutofill }
 			</SelectControl>
 
 			<TextControl
 				label={ __( 'City', 'woocommerce-admin' ) }
 				required
 				{ ...getInputProps( 'city' ) }
+				autoComplete="address-level2"
 			/>
 
 			<TextControl
 				label={ __( 'Post code', 'woocommerce-admin' ) }
 				required
+				autoComplete="postal-code"
 				{ ...getInputProps( 'postCode' ) }
 			/>
 		</div>

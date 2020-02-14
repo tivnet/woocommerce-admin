@@ -1,10 +1,14 @@
-/** @format */
 /**
  * External dependencies
  */
 import { __ } from '@wordpress/i18n';
 import { Component, Fragment } from '@wordpress/element';
-import { IconButton, Button, Dashicon, Dropdown, NavigableMenu } from '@wordpress/components';
+import {
+	IconButton,
+	Button,
+	Dashicon,
+	SelectControl,
+} from '@wordpress/components';
 import classnames from 'classnames';
 import interpolateComponents from 'interpolate-components';
 import { compose } from '@wordpress/compose';
@@ -14,7 +18,7 @@ import moment from 'moment';
 /**
  * WooCommerce dependencies
  */
-import { Card, DropdownButton } from '@woocommerce/components';
+import { Card } from '@woocommerce/components';
 import { getSetting } from '@woocommerce/wc-admin-settings';
 
 /**
@@ -66,7 +70,7 @@ class StoreAlerts extends Component {
 
 	renderActions( alert ) {
 		const { triggerNoteAction, updateNote } = this.props;
-		const actions = alert.actions.map( action => {
+		const actions = alert.actions.map( ( action ) => {
 			return (
 				<Button
 					key={ action.name }
@@ -83,83 +87,86 @@ class StoreAlerts extends Component {
 		// TODO: should "next X" be the start, or exactly 1X from the current date?
 		const snoozeOptions = [
 			{
-				newDate: moment()
+				value: moment()
 					.add( 4, 'hours' )
-					.unix(),
+					.unix()
+					.toString(),
 				label: __( 'Later Today', 'woocommerce-admin' ),
 			},
 			{
-				newDate: moment()
+				value: moment()
 					.add( 1, 'day' )
 					.hour( 9 )
 					.minute( 0 )
 					.second( 0 )
 					.millisecond( 0 )
-					.unix(),
+					.unix()
+					.toString(),
 				label: __( 'Tomorrow', 'woocommerce-admin' ),
 			},
 			{
-				newDate: moment()
+				value: moment()
 					.add( 1, 'week' )
 					.hour( 9 )
 					.minute( 0 )
 					.second( 0 )
 					.millisecond( 0 )
-					.unix(),
+					.unix()
+					.toString(),
 				label: __( 'Next Week', 'woocommerce-admin' ),
 			},
 			{
-				newDate: moment()
+				value: moment()
 					.add( 1, 'month' )
 					.hour( 9 )
 					.minute( 0 )
 					.second( 0 )
 					.millisecond( 0 )
-					.unix(),
+					.unix()
+					.toString(),
 				label: __( 'Next Month', 'woocommerce-admin' ),
 			},
 		];
 
-		const setReminderDate = ( snoozeOption, onClose ) => {
-			return () => {
-				onClose();
-				updateNote( alert.id, { status: 'snoozed', date_reminder: snoozeOption.newDate } );
+		const setReminderDate = ( snoozeOption ) => {
+			updateNote( alert.id, {
+				status: 'snoozed',
+				date_reminder: snoozeOption.value,
+			} );
 
-				const eventProps = {
-					alert_name: alert.name,
-					alert_title: alert.title,
-					snooze_duration: snoozeOption.newDate,
-					snooze_label: snoozeOption.label,
-				};
-				recordEvent( 'store_alert_snooze', eventProps );
+			const eventProps = {
+				alert_name: alert.name,
+				alert_title: alert.title,
+				snooze_duration: snoozeOption.value,
+				snooze_label: snoozeOption.label,
 			};
+			recordEvent( 'store_alert_snooze', eventProps );
 		};
 
 		const snooze = alert.is_snoozable && (
-			<Dropdown
+			<SelectControl
 				className="woocommerce-store-alerts__snooze"
-				position="bottom"
-				expandOnMobile
-				renderToggle={ ( { isOpen, onToggle } ) => (
-					<DropdownButton
-						onClick={ onToggle }
-						isOpen={ isOpen }
-						labels={ [ __( 'Remind Me Later', 'woocommerce-admin' ) ] }
-					/>
-				) }
-				renderContent={ ( { onClose } ) => (
-					<NavigableMenu className="components-dropdown-menu__menu">
-						{ snoozeOptions.map( ( option, idx ) => (
-							<Button
-								className="components-dropdown-menu__menu-item"
-								key={ idx }
-								onClick={ setReminderDate( option, onClose ) }
-							>
-								{ option.label }
-							</Button>
-						) ) }
-					</NavigableMenu>
-				) }
+				options={ [
+					{
+						label: __( 'Remind Me Later', 'woocommerce-admin' ),
+						value: '0',
+					},
+					...snoozeOptions,
+				] }
+				onChange={ ( value ) => {
+					if ( value === '0' ) {
+						return;
+					}
+
+					const reminderOption = snoozeOptions.find(
+						( option ) => option.value === value
+					);
+					const reminderDate = {
+						value,
+						label: reminderOption && reminderOption.label,
+					};
+					setReminderDate( reminderDate );
+				} }
 			/>
 		);
 
@@ -175,11 +182,17 @@ class StoreAlerts extends Component {
 
 	render() {
 		const alerts = this.props.alerts || [];
-		const preloadAlertCount = getSetting( 'alertCount', 0, count => parseInt( count, 10 ) );
+		const preloadAlertCount = getSetting( 'alertCount', 0, ( count ) =>
+			parseInt( count, 10 )
+		);
 
 		if ( preloadAlertCount > 0 && this.props.isLoading ) {
-			return <StoreAlertsPlaceholder hasMultipleAlerts={ preloadAlertCount > 1 } />;
-		} else if ( 0 === alerts.length ) {
+			return (
+				<StoreAlertsPlaceholder
+					hasMultipleAlerts={ preloadAlertCount > 1 }
+				/>
+			);
+		} else if ( alerts.length === 0 ) {
 			return null;
 		}
 
@@ -187,10 +200,14 @@ class StoreAlerts extends Component {
 		const numberOfAlerts = alerts.length;
 		const alert = alerts[ currentIndex ];
 		const type = alert.type;
-		const className = classnames( 'woocommerce-store-alerts', 'woocommerce-analytics__card', {
-			'is-alert-error': 'error' === type,
-			'is-alert-update': 'update' === type,
-		} );
+		const className = classnames(
+			'woocommerce-store-alerts',
+			'woocommerce-analytics__card',
+			{
+				'is-alert-error': type === 'error',
+				'is-alert-update': type === 'update',
+			}
+		);
 
 		return (
 			<Card
@@ -205,8 +222,11 @@ class StoreAlerts extends Component {
 							<IconButton
 								icon="arrow-left-alt2"
 								onClick={ this.previousAlert }
-								disabled={ 0 === currentIndex }
-								label={ __( 'Previous Alert', 'woocommerce-admin' ) }
+								disabled={ currentIndex === 0 }
+								label={ __(
+									'Previous Alert',
+									'woocommerce-admin'
+								) }
 							/>
 							<span
 								className="woocommerce-store-alerts__pagination-label"
@@ -214,10 +234,21 @@ class StoreAlerts extends Component {
 								aria-live="polite"
 							>
 								{ interpolateComponents( {
-									mixedString: __( '{{current /}} of {{total /}}', 'woocommerce-admin' ),
+									mixedString: __(
+										'{{current /}} of {{total /}}',
+										'woocommerce-admin'
+									),
 									components: {
-										current: <Fragment>{ currentIndex + 1 }</Fragment>,
-										total: <Fragment>{ numberOfAlerts }</Fragment>,
+										current: (
+											<Fragment>
+												{ currentIndex + 1 }
+											</Fragment>
+										),
+										total: (
+											<Fragment>
+												{ numberOfAlerts }
+											</Fragment>
+										),
 									},
 								} ) }
 							</span>
@@ -225,7 +256,10 @@ class StoreAlerts extends Component {
 								icon="arrow-right-alt2"
 								onClick={ this.nextAlert }
 								disabled={ numberOfAlerts - 1 === currentIndex }
-								label={ __( 'Next Alert', 'woocommerce-admin' ) }
+								label={ __(
+									'Next Alert',
+									'woocommerce-admin'
+								) }
 							/>
 						</div>
 					)
@@ -242,7 +276,7 @@ class StoreAlerts extends Component {
 }
 
 export default compose(
-	withSelect( select => {
+	withSelect( ( select ) => {
 		const { getNotes, isGetNotesRequesting } = select( 'wc-api' );
 		const alertsQuery = {
 			page: 1,
@@ -252,7 +286,7 @@ export default compose(
 		};
 
 		// Filter out notes that may have been marked actioned or not delayed after the initial request
-		const filterNotes = note => 'unactioned' === note.status;
+		const filterNotes = ( note ) => note.status === 'unactioned';
 		const alerts = getNotes( alertsQuery ).filter( filterNotes );
 
 		const isLoading = isGetNotesRequesting( alertsQuery );
@@ -262,7 +296,7 @@ export default compose(
 			isLoading,
 		};
 	} ),
-	withDispatch( dispatch => {
+	withDispatch( ( dispatch ) => {
 		const { triggerNoteAction, updateNote } = dispatch( 'wc-api' );
 
 		return {

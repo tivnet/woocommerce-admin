@@ -1,7 +1,5 @@
 /**
  * External dependencies
- *
- * @format
  */
 
 import * as SHARED from '@woocommerce/settings';
@@ -13,7 +11,8 @@ import * as FALLBACKS from './fallbacks';
 
 // If `getSetting` is not set, then it was not available so let's do
 // defaults.
-const SOURCE = ! SHARED || typeof SHARED.getSetting === 'undefined' ? FALLBACKS : SHARED;
+const SOURCE =
+	! SHARED || typeof SHARED.getSetting === 'undefined' ? FALLBACKS : SHARED;
 
 export const ADMIN_URL = SOURCE.ADMIN_URL;
 export const COUNTRIES = SOURCE.COUNTRIES;
@@ -26,3 +25,7 @@ export const DEFAULT_DATE_RANGE = SOURCE.DEFAULT_DATE_RANGE;
 
 export const getSetting = SOURCE.getSetting;
 export const setSetting = SOURCE.setSetting;
+
+// this needs to be shimmed separately because WooCommerce Blocks plugin version
+// might have `SHARED.getSetting` and thus `fallbacks.js` will not get loaded.
+export const getAdminLink = SOURCE.getAdminLink || FALLBACKS.getAdminLink;

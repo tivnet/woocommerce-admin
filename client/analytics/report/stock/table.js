@@ -1,4 +1,3 @@
-/** @format */
 /**
  * External dependencies
  */
@@ -10,8 +9,8 @@ import { Component } from '@wordpress/element';
  */
 import { Link } from '@woocommerce/components';
 import { getNewPath, getPersistedQuery } from '@woocommerce/navigation';
-import { numberFormat } from '@woocommerce/number';
-import { getSetting } from '@woocommerce/wc-admin-settings';
+import { formatValue } from 'lib/number-format';
+import { getAdminLink, getSetting } from '@woocommerce/wc-admin-settings';
 
 /**
  * Internal dependencies
@@ -62,22 +61,26 @@ export default class StockReportTable extends Component {
 		const { query } = this.props;
 		const persistedQuery = getPersistedQuery( query );
 
-		return products.map( product => {
+		return products.map( ( product ) => {
 			const {
 				id,
-				manage_stock,
+				manage_stock: manageStock,
 				name,
-				parent_id,
+				parent_id: parentId,
 				sku,
-				stock_quantity,
-				stock_status,
-				low_stock_amount,
+				stock_quantity: stockQuantity,
+				stock_status: stockStatus,
+				low_stock_amount: lowStockAmount,
 			} = product;
 
-			const productDetailLink = getNewPath( persistedQuery, '/analytics/products', {
-				filter: 'single_product',
-				products: parent_id || id,
-			} );
+			const productDetailLink = getNewPath(
+				persistedQuery,
+				'/analytics/products',
+				{
+					filter: 'single_product',
+					products: parentId || id,
+				}
+			);
 
 			const nameLink = (
 				<Link href={ productDetailLink } type="wc-admin">
@@ -85,13 +88,24 @@ export default class StockReportTable extends Component {
 				</Link>
 			);
 
-			const stockStatusLink = isLowStock( stock_status, stock_quantity, low_stock_amount ) ? (
-				<Link href={ 'post.php?action=edit&post=' + ( parent_id || id ) } type="wp-admin">
-					{ _x( 'Low', 'Indication of a low quantity', 'woocommerce-admin' ) }
+			const editProductLink = getAdminLink(
+				'post.php?action=edit&post=' + ( parentId || id )
+			);
+			const stockStatusLink = isLowStock(
+				stockStatus,
+				stockQuantity,
+				lowStockAmount
+			) ? (
+				<Link href={ editProductLink } type="wp-admin">
+					{ _x(
+						'Low',
+						'Indication of a low quantity',
+						'woocommerce-admin'
+					) }
 				</Link>
 			) : (
-				<Link href={ 'post.php?action=edit&post=' + ( parent_id || id ) } type="wp-admin">
-					{ stockStatuses[ stock_status ] }
+				<Link href={ editProductLink } type="wp-admin">
+					{ stockStatuses[ stockStatus ] }
 				</Link>
 			);
 
@@ -106,38 +120,51 @@ export default class StockReportTable extends Component {
 				},
 				{
 					display: stockStatusLink,
-					value: stock_status,
+					value: stockStatus,
 				},
 				{
-					display: manage_stock ? numberFormat( stock_quantity ) : __( 'N/A', 'woocommerce-admin' ),
-					value: stock_quantity,
+					display: manageStock
+						? formatValue( 'number', stockQuantity )
+						: __( 'N/A', 'woocommerce-admin' ),
+					value: stockQuantity,
 				},
 			];
 		} );
 	}
 
 	getSummary( totals ) {
-		const { products = 0, outofstock = 0, lowstock = 0, instock = 0, onbackorder = 0 } = totals;
+		const {
+			products = 0,
+			outofstock = 0,
+			lowstock = 0,
+			instock = 0,
+			onbackorder = 0,
+		} = totals;
 		return [
 			{
-				label: _n( 'product', 'products', products, 'woocommerce-admin' ),
-				value: numberFormat( products ),
+				label: _n(
+					'product',
+					'products',
+					products,
+					'woocommerce-admin'
+				),
+				value: formatValue( 'number', products ),
 			},
 			{
 				label: __( 'out of stock', outofstock, 'woocommerce-admin' ),
-				value: numberFormat( outofstock ),
+				value: formatValue( 'number', outofstock ),
 			},
 			{
 				label: __( 'low stock', lowstock, 'woocommerce-admin' ),
-				value: numberFormat( lowstock ),
+				value: formatValue( 'number', lowstock ),
 			},
 			{
 				label: __( 'on backorder', onbackorder, 'woocommerce-admin' ),
-				value: numberFormat( onbackorder ),
+				value: formatValue( 'number', onbackorder ),
 			},
 			{
 				label: __( 'in stock', instock, 'woocommerce-admin' ),
-				value: numberFormat( instock ),
+				value: formatValue( 'number', instock ),
 			},
 		];
 	}

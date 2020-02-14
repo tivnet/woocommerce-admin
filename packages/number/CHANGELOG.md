@@ -1,4 +1,9 @@
-# (unreleased)
+# 2.0.0
+## Breaking Changes
+- Decouple from global wcSettings object.
+- Exported methods of the number package have been rewritten to accept a configuration object as their first parameter.
+
+## Other Changes
 - Remove lodash dependency.
 
 # 1.0.4

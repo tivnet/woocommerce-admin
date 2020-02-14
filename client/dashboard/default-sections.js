@@ -1,4 +1,3 @@
-/** @format */
 /**
  * External dependencies
  */
@@ -41,7 +40,7 @@ export default applyFilters( DEFAULT_SECTIONS_FILTER, [
 			'avg_order_value',
 			'avg_items_per_order',
 			'items_sold',
-			'gross_revenue',
+			'total_sales',
 			'refunds',
 			'coupons',
 			'taxes',

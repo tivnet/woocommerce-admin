@@ -1,4 +1,3 @@
-/** @format */
 /**
  * External dependencies
  */
@@ -9,6 +8,7 @@ import Gridicon from 'gridicons';
 import { IconButton } from '@wordpress/components';
 import { intersection, noop, partial } from 'lodash';
 import PropTypes from 'prop-types';
+import { applyFilters } from '@wordpress/hooks';
 
 class WordPressNotices extends Component {
 	constructor() {
@@ -30,7 +30,7 @@ class WordPressNotices extends Component {
 
 	componentDidMount() {
 		this.handleWooCommerceEmbedPage();
-		if ( 'complete' === document.readyState ) {
+		if ( document.readyState === 'complete' ) {
 			this.initialize();
 		} else {
 			window.addEventListener( 'DOMContentLoaded', this.initialize );
@@ -60,7 +60,7 @@ class WordPressNotices extends Component {
 		const headerEnds = document.getElementsByClassName( 'wp-header-end' );
 		for ( let i = 0; i < headerEnds.length; i++ ) {
 			const headerEnd = headerEnds.item( i );
-			if ( 'woocommerce-layout__notice-catcher' !== headerEnd.id ) {
+			if ( headerEnd.id !== 'woocommerce-layout__notice-catcher' ) {
 				headerEnd.className = '';
 				headerEnd.id = 'wp__notice-list-uncollapsed';
 			}
@@ -69,33 +69,44 @@ class WordPressNotices extends Component {
 
 	initialize() {
 		const notices = document.getElementById( 'wp__notice-list' );
-		const noticesOpen = notices.classList.contains( 'woocommerce-layout__notice-list-show' );
+		const noticesOpen = notices.classList.contains(
+			'woocommerce-layout__notice-list-show'
+		);
 		const screenMeta = document.getElementById( 'screen-meta' );
 		const screenLinks = document.getElementById( 'screen-meta-links' );
 
-		const collapsedTargetArea = document.getElementById( 'woocommerce-layout__notice-list' );
+		const collapsedTargetArea = document.getElementById(
+			'woocommerce-layout__notice-list'
+		);
 		const uncollapsedTargetArea =
 			document.getElementById( 'wp__notice-list-uncollapsed' ) ||
 			document.getElementById( 'ajax-response' ) ||
 			document.getElementById( 'woocommerce-layout__notice-list' );
 
 		let count = 0;
-		for ( let i = 0; i <= notices.children.length; i++ ) {
-			const notice = notices.children[ i ];
-			if ( ! notice ) {
-				continue;
-			} else if ( 0 === notice.innerHTML.length ) {
+
+		for ( const notice of Array.from( notices.children ) ) {
+			if ( notice.innerHTML.length === 0 ) {
 				// Ignore empty elements in this part of the DOM.
 				continue;
 			} else if ( ! this.shouldCollapseNotice( notice ) ) {
-				uncollapsedTargetArea.insertAdjacentElement( 'afterend', notice );
+				uncollapsedTargetArea.insertAdjacentElement(
+					'afterend',
+					notice
+				);
 			} else {
 				count++;
 			}
 		}
 
 		this.props.onCountUpdate( count );
-		this.setState( { count, notices, noticesOpen, screenMeta, screenLinks } );
+		this.setState( {
+			count,
+			notices,
+			noticesOpen,
+			screenMeta,
+			screenLinks,
+		} );
 
 		// Move collapsed WordPress notifications into the main wc-admin body
 		collapsedTargetArea.insertAdjacentElement( 'beforeend', notices );
@@ -106,9 +117,14 @@ class WordPressNotices extends Component {
 			.getElementById( 'wpbody-content' )
 			.insertAdjacentElement( 'afterbegin', this.state.notices );
 
-		const dismissNotices = document.getElementsByClassName( 'notice-dismiss' );
+		const dismissNotices = document.getElementsByClassName(
+			'notice-dismiss'
+		);
 		Object.keys( dismissNotices ).forEach( function( key ) {
-			dismissNotices[ key ].removeEventListener( 'click', this.updateCount );
+			dismissNotices[ key ].removeEventListener(
+				'click',
+				this.updateCount
+			);
 		}, this );
 
 		this.setState( { noticesOpen: false, hasEventListeners: false } );
@@ -117,34 +133,54 @@ class WordPressNotices extends Component {
 
 	// Some messages should not be displayed in the toggle, like Jetpack JITM messages or update/success messages
 	shouldCollapseNotice( element ) {
-		// element id, [ classes to include ], [ classes to exclude ]
-		const noticesToHide = [
-			[ null, [ 'jetpack-jitm-message' ] ],
-			[ 'woocommerce_errors', null ],
-			[ null, [ 'hidden' ] ],
-			[ 'message', [ 'notice', 'updated' ], [ 'woocommerce-message' ] ],
-		];
+		const noticesToShow = applyFilters(
+			'woocommerce_admin_notices_to_show',
+			// element id, [ classes to include ], [ classes to exclude ]
+			[
+				[ null, [ 'jetpack-jitm-message' ] ],
+				[ 'woocommerce_errors', null ],
+				[ null, [ 'hidden' ] ],
+				[
+					'message',
+					[ 'notice', 'updated' ],
+					[ 'woocommerce-message' ],
+				],
+			]
+		);
 
-		for ( let i = 0; i < noticesToHide.length; i++ ) {
-			const [ id, includeClasses, excludeClasses ] = noticesToHide[ i ];
+		for ( let i = 0; i < noticesToShow.length; i++ ) {
+			const [ id, includeClasses, excludeClasses ] = noticesToShow[ i ];
 
-			const idMatch = null === id || id === element.id;
+			const idMatch = id === null || id === element.id;
 			let classMatch = true;
 
 			if ( Array.isArray( includeClasses ) ) {
-				classMatch = 0 < intersection( element.classList, includeClasses ).length;
+				classMatch =
+					intersection( element.classList, includeClasses ).length >
+					0;
 			}
 
 			if ( Array.isArray( excludeClasses ) ) {
-				classMatch = classMatch && 0 === intersection( element.classList, excludeClasses ).length;
+				classMatch =
+					classMatch &&
+					intersection( element.classList, excludeClasses ).length ===
+						0;
 			}
 
 			if ( idMatch && classMatch ) {
-				return false;
+				return applyFilters(
+					'woocommerce_admin_should_hide_notice',
+					false,
+					element
+				);
 			}
 		}
 
-		return true;
+		return applyFilters(
+			'woocommerce_admin_should_hide_notice',
+			true,
+			element
+		);
 	}
 
 	updateCount() {
@@ -174,16 +210,29 @@ class WordPressNotices extends Component {
 		const { notices, screenLinks, screenMeta } = this.state;
 		notices.classList.add( 'woocommerce-layout__notice-list-show' );
 		notices.classList.remove( 'woocommerce-layout__notice-list-hide' );
-		screenMeta && screenMeta.classList.add( 'is-hidden-by-notices' );
-		screenLinks && screenLinks.classList.add( 'is-hidden-by-notices' );
+		if ( screenMeta ) {
+			screenMeta.classList.add( 'is-hidden-by-notices' );
+		}
+		if ( screenLinks ) {
+			screenLinks.classList.add( 'is-hidden-by-notices' );
+		}
+
+		window.scrollBy( 0, window.scrollY * -1 );
+		this.setState( { noticesOpen: true } );
 	}
 
 	hideNotices() {
 		const { notices, screenLinks, screenMeta } = this.state;
 		notices.classList.add( 'woocommerce-layout__notice-list-hide' );
 		notices.classList.remove( 'woocommerce-layout__notice-list-show' );
-		screenMeta && screenMeta.classList.remove( 'is-hidden-by-notices' );
-		screenLinks && screenLinks.classList.remove( 'is-hidden-by-notices' );
+		if ( screenMeta ) {
+			screenMeta.classList.remove( 'is-hidden-by-notices' );
+		}
+		if ( screenLinks ) {
+			screenLinks.classList.remove( 'is-hidden-by-notices' );
+		}
+
+		this.setState( { noticesOpen: false } );
 	}
 
 	render() {
@@ -194,10 +243,13 @@ class WordPressNotices extends Component {
 			return null;
 		}
 
-		const className = classnames( 'woocommerce-layout__activity-panel-tab', {
-			'woocommerce-layout__activity-panel-tab-wordpress-notices': true,
-			'is-active': showNotices,
-		} );
+		const className = classnames(
+			'woocommerce-layout__activity-panel-tab',
+			{
+				'woocommerce-layout__activity-panel-tab-wordpress-notices': true,
+				'is-active': showNotices,
+			}
+		);
 
 		return (
 			<IconButton
@@ -208,8 +260,10 @@ class WordPressNotices extends Component {
 				role="tab"
 				tabIndex={ showNotices ? null : -1 }
 			>
-				{ __( 'Notices', 'woocommerce-admin' ) }{' '}
-				<span className="screen-reader-text">{ __( 'unread activity', 'woocommerce-admin' ) }</span>
+				{ __( 'Notices', 'woocommerce-admin' ) }{ ' ' }
+				<span className="screen-reader-text">
+					{ __( 'unread activity', 'woocommerce-admin' ) }
+				</span>
 			</IconButton>
 		);
 	}

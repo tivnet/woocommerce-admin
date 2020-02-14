@@ -1,11 +1,10 @@
-/** @format */
 /**
  * External dependencies
  */
 import { __ } from '@wordpress/i18n';
 import { Component, Fragment } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
-import { Button } from 'newspack-components';
+import { Button } from '@wordpress/components';
 import { getQuery } from '@woocommerce/navigation';
 import { withDispatch } from '@wordpress/data';
 import { compose } from '@wordpress/compose';
@@ -32,24 +31,31 @@ class Square extends Component {
 		const query = getQuery();
 		// Handle redirect back from Square
 		if ( query[ 'square-connect' ] ) {
-			if ( '1' === query[ 'square-connect' ] ) {
-				recordEvent( 'tasklist_payment_connect_method', { payment_method: 'square' } );
+			if ( query[ 'square-connect' ] === '1' ) {
+				recordEvent( 'tasklist_payment_connect_method', {
+					payment_method: 'square',
+				} );
 				this.props.markConfigured( 'square' );
 				this.props.createNotice(
 					'success',
 					__( 'Square connected successfully.', 'woocommerce-admin' )
 				);
-				return;
 			}
 		}
 	}
 
 	componentDidUpdate( prevProps ) {
-		if ( false === prevProps.optionsIsRequesting && true === this.props.optionsIsRequesting ) {
+		if (
+			prevProps.optionsIsRequesting === false &&
+			this.props.optionsIsRequesting === true
+		) {
 			this.props.setRequestPending( true );
 		}
 
-		if ( true === prevProps.optionsIsRequesting && false === this.props.optionsIsRequesting ) {
+		if (
+			prevProps.optionsIsRequesting === true &&
+			this.props.optionsIsRequesting === false
+		) {
 			this.props.setRequestPending( false );
 		}
 	}
@@ -115,7 +121,7 @@ class Square extends Component {
 }
 
 export default compose(
-	withSelect( select => {
+	withSelect( ( select ) => {
 		const { getOptions, isGetOptionsRequesting } = select( 'wc-api' );
 		const options = getOptions( [ 'woocommerce_stripe_settings' ] );
 		const optionsIsRequesting = Boolean(
@@ -127,7 +133,7 @@ export default compose(
 			optionsIsRequesting,
 		};
 	} ),
-	withDispatch( dispatch => {
+	withDispatch( ( dispatch ) => {
 		const { createNotice } = dispatch( 'core/notices' );
 		const { updateOptions } = dispatch( 'wc-api' );
 		return {

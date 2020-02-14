@@ -1,3 +1,11 @@
+# 2.0.0
+
+## Breaking changes
+
+- Decouple from global wcSettings object (#3278)
+- Exported methods of the date package have been rewritten to accept a configuration object as their second parameter.
+- `loadLocaleData` is no longer called within the date package. Consuming code must take care of that themselves.
+
 # 1.2.1
 
 - Update dependencies.

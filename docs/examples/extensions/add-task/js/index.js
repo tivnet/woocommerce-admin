@@ -1,4 +1,3 @@
-/** @format */
 /**
  * External dependencies
  */
@@ -16,7 +15,7 @@ import { getHistory, getNewPath } from '@woocommerce/navigation';
 /* global addTaskData */
 const markTaskComplete = () => {
 	apiFetch( {
-		path: '/wc-admin/v1/options',
+		path: '/wc-admin/options',
 		method: 'POST',
 		data: { woocommerce_admin_add_task_example_complete: true },
 	} )
@@ -26,7 +25,7 @@ const markTaskComplete = () => {
 			// Redirect back to the root WooCommerce Admin page.
 			getHistory().push( getNewPath( {}, '/', {} ) );
 		} )
-		.catch( error => {
+		.catch( ( error ) => {
 			// Something went wrong with our update.
 			console.log( error );
 		} );
@@ -34,7 +33,7 @@ const markTaskComplete = () => {
 
 const markTaskIncomplete = () => {
 	apiFetch( {
-		path: '/wc-admin/v1/options',
+		path: '/wc-admin/options',
 		method: 'POST',
 		data: { woocommerce_admin_add_task_example_complete: false },
 	} )
@@ -42,7 +41,7 @@ const markTaskIncomplete = () => {
 			addTaskData.isComplete = false;
 			getHistory().push( getNewPath( {}, '/', {} ) );
 		} )
-		.catch( error => {
+		.catch( ( error ) => {
 			console.log( error );
 		} );
 };
@@ -69,19 +68,23 @@ const Task = () => {
 };
 
 /**
- * Use the 'woocommerce_onboarding_task_list' filter to add a task page.
+ * Use the 'woocommerce_admin_onboarding_task_list' filter to add a task page.
  */
-addFilter( 'woocommerce_onboarding_task_list', 'plugin-domain', tasks => {
-	return [
-		...tasks,
-		{
-			key: 'example',
-			title: __( 'Example', 'plugin-domain' ),
-			content: __( 'This is an example task.', 'plugin-domain' ),
-			icon: 'info',
-			container: <Task />,
-			completed: addTaskData.isComplete,
-			visible: true,
-		},
-	];
-} );
+addFilter(
+	'woocommerce_admin_onboarding_task_list',
+	'plugin-domain',
+	( tasks ) => {
+		return [
+			...tasks,
+			{
+				key: 'example',
+				title: __( 'Example', 'plugin-domain' ),
+				content: __( 'This is an example task.', 'plugin-domain' ),
+				icon: 'info',
+				container: <Task />,
+				completed: addTaskData.isComplete,
+				visible: true,
+			},
+		];
+	}
+);

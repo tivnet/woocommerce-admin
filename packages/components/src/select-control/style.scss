@@ -1,4 +1,4 @@
-/** @format */
+
 
 .woocommerce-select-control {
 	position: relative;
@@ -97,7 +97,7 @@
 
 	.woocommerce-select-control__clear {
 		position: absolute;
-		right: 0;
+		right: 10px;
 		top: calc(50% - 10px);
 
 		& > .dashicon {
@@ -117,7 +117,7 @@
 		right: 0;
 		top: 57px;
 		z-index: 10;
-		overflow-y: scroll;
+		overflow-y: auto;
 		max-height: 350px;
 
 		&.is-static {

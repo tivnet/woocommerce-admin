@@ -56,6 +56,7 @@ export default withState( {
 	simpleSelected: [],
 	simpleMultipleSelected: [],
 	singleSelected: [],
+	singleSelectedShowAll: [],
 	multipleSelected: [],
 	inlineSelected: [],
 } )(
@@ -63,6 +64,7 @@ export default withState( {
 		simpleSelected,
 		simpleMultipleSelected,
 		singleSelected,
+		singleSelectedShowAll,
 		multipleSelected,
 		inlineSelected,
 		setState,
@@ -70,7 +72,9 @@ export default withState( {
 		<div>
 			<SelectControl
 				label="Simple single value"
-				onChange={ selected => setState( { simpleSelected: selected } ) }
+				onChange={ ( selected ) =>
+					setState( { simpleSelected: selected } )
+				}
 				options={ options }
 				placeholder="Start typing to filter options..."
 				selected={ simpleSelected }
@@ -79,7 +83,9 @@ export default withState( {
 			<SelectControl
 				label="Multiple values"
 				multiple
-				onChange={ selected => setState( { simpleMultipleSelected: selected } ) }
+				onChange={ ( selected ) =>
+					setState( { simpleMultipleSelected: selected } )
+				}
 				options={ options }
 				placeholder="Start typing to filter options..."
 				selected={ simpleMultipleSelected }
@@ -88,10 +94,24 @@ export default withState( {
 			<SelectControl
 				label="Single value searchable"
 				isSearchable
-				onChange={ selected => setState( { singleSelected: selected } ) }
+				onChange={ ( selected ) =>
+					setState( { singleSelected: selected } )
+				}
 				options={ options }
 				placeholder="Start typing to filter options..."
 				selected={ singleSelected }
+			/>
+			<br />
+			<SelectControl
+				label="Single value searchable with options on refocus"
+				isSearchable
+				onChange={ ( selected ) =>
+					setState( { singleSelectedShowAll: selected } )
+				}
+				options={ options }
+				placeholder="Start typing to filter options..."
+				selected={ singleSelectedShowAll }
+				showAllOnFocus
 			/>
 			<br />
 			<SelectControl
@@ -99,7 +119,9 @@ export default withState( {
 				isSearchable
 				multiple
 				inlineTags
-				onChange={ selected => setState( { inlineSelected: selected } ) }
+				onChange={ ( selected ) =>
+					setState( { inlineSelected: selected } )
+				}
 				options={ options }
 				placeholder="Start typing to filter options..."
 				selected={ inlineSelected }
@@ -110,7 +132,9 @@ export default withState( {
 				isSearchable
 				label="Hidden options before search"
 				multiple
-				onChange={ selected => setState( { multipleSelected: selected } ) }
+				onChange={ ( selected ) =>
+					setState( { multipleSelected: selected } )
+				}
 				options={ options }
 				placeholder="Start typing to filter options..."
 				selected={ multipleSelected }

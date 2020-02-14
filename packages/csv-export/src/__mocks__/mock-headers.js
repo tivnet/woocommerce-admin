@@ -1,5 +1,3 @@
-/** @format */
-
 export default [
 	{
 		label: 'Date',
@@ -14,8 +12,8 @@ export default [
 		key: 'description',
 	},
 	{
-		label: 'Gross Revenue',
-		key: 'gross_revenue',
+		label: 'Total Sales',
+		key: 'total_sales',
 	},
 	{
 		label: 'Refunds',
@@ -34,7 +32,7 @@ export default [
 		key: 'shipping',
 	},
 	{
-		label: 'Net Revenue',
+		label: 'Net Sales',
 		key: 'net_revenue',
 	},
 	{

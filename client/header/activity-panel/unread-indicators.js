@@ -1,5 +1,3 @@
-/** @format */
-
 /**
  * Internal dependencies
  */
@@ -7,7 +5,12 @@ import { DEFAULT_ACTIONABLE_STATUSES } from 'wc-api/constants';
 import { getSetting } from '@woocommerce/wc-admin-settings';
 
 export function getUnreadNotes( select ) {
-	const { getCurrentUserData, getNotes, getNotesError, isGetNotesRequesting } = select( 'wc-api' );
+	const {
+		getCurrentUserData,
+		getNotes,
+		getNotesError,
+		isGetNotesRequesting,
+	} = select( 'wc-api' );
 	const userData = getCurrentUserData();
 	if ( ! userData ) {
 		return null;
@@ -20,6 +23,9 @@ export function getUnreadNotes( select ) {
 		order: 'desc',
 	};
 
+	// Disable eslint rule requiring `latestNote` to be defined below because the next two statements
+	// depend on `getNotes` to have been called.
+	// eslint-disable-next-line @wordpress/no-unused-vars-before-return
 	const latestNote = getNotes( notesQuery );
 	const isError = Boolean( getNotesError( notesQuery ) );
 	const isRequesting = isGetNotesRequesting( notesQuery );
@@ -36,7 +42,12 @@ export function getUnreadNotes( select ) {
 }
 
 export function getUnreadOrders( select ) {
-	const { getItems, getItemsTotalCount, getItemsError, isGetItemsRequesting } = select( 'wc-api' );
+	const {
+		getItems,
+		getItemsTotalCount,
+		getItemsError,
+		isGetItemsRequesting,
+	} = select( 'wc-api' );
 	const {
 		woocommerce_actionable_order_statuses: orderStatuses = DEFAULT_ACTIONABLE_STATUSES,
 	} = getSetting( 'wcAdminSettings', {} );
@@ -53,6 +64,10 @@ export function getUnreadOrders( select ) {
 	};
 
 	getItems( 'orders', ordersQuery );
+
+	// Disable eslint rule requiring `latestNote` to be defined below because the next two statements
+	// depend on `getItemsTotalCount` to have been called.
+	// eslint-disable-next-line @wordpress/no-unused-vars-before-return
 	const totalOrders = getItemsTotalCount( 'orders', ordersQuery );
 	const isError = Boolean( getItemsError( 'orders', ordersQuery ) );
 	const isRequesting = isGetItemsRequesting( 'orders', ordersQuery );
@@ -65,10 +80,13 @@ export function getUnreadOrders( select ) {
 }
 
 export function getUnapprovedReviews( select ) {
-	const { getReviewsTotalCount, getReviewsError, isGetReviewsRequesting } = select( 'wc-api' );
+	const {
+		getReviewsTotalCount,
+		getReviewsError,
+		isGetReviewsRequesting,
+	} = select( 'wc-api' );
 	const reviewsEnabled = getSetting( 'reviewsEnabled' );
-	const commentModeration = getSetting( 'commentModeration' );
-	if ( 'yes' === reviewsEnabled && '1' === commentModeration ) {
+	if ( reviewsEnabled === 'yes' ) {
 		const actionableReviewsQuery = {
 			page: 1,
 			// @todo we are not using this review, so when the endpoint supports it,
@@ -76,9 +94,15 @@ export function getUnapprovedReviews( select ) {
 			per_page: 1,
 			status: 'hold',
 		};
-		const totalActionableReviews = getReviewsTotalCount( actionableReviewsQuery );
-		const isActionableReviewsError = Boolean( getReviewsError( actionableReviewsQuery ) );
-		const isActionableReviewsRequesting = isGetReviewsRequesting( actionableReviewsQuery );
+		const totalActionableReviews = getReviewsTotalCount(
+			actionableReviewsQuery
+		);
+		const isActionableReviewsError = Boolean(
+			getReviewsError( actionableReviewsQuery )
+		);
+		const isActionableReviewsRequesting = isGetReviewsRequesting(
+			actionableReviewsQuery
+		);
 
 		if ( ! isActionableReviewsError && ! isActionableReviewsRequesting ) {
 			return totalActionableReviews > 0;
@@ -89,7 +113,7 @@ export function getUnapprovedReviews( select ) {
 }
 
 export function getUnreadStock( select ) {
-	const { getItems, getItemsError, getItemsTotalCount, isGetItemsRequesting } = select( 'wc-api' );
+	const { getItems, getItemsError, getItemsTotalCount } = select( 'wc-api' );
 	const productsQuery = {
 		page: 1,
 		per_page: 1,
@@ -97,13 +121,12 @@ export function getUnreadStock( select ) {
 		status: 'publish',
 	};
 	getItems( 'products', productsQuery );
-	const lowInStockCount = getItemsTotalCount( 'products', productsQuery );
 	const isError = Boolean( getItemsError( 'products', productsQuery ) );
-	const isRequesting = isGetItemsRequesting( 'products', productsQuery );
 
-	if ( isError || isRequesting ) {
+	if ( isError ) {
 		return null;
 	}
 
+	const lowInStockCount = getItemsTotalCount( 'products', productsQuery );
 	return lowInStockCount > 0;
 }

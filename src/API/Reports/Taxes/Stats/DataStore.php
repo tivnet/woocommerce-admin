@@ -51,13 +51,13 @@ class DataStore extends ReportsDataStore implements DataStoreInterface {
 	 *
 	 * @var string
 	 */
-	protected $context = 'tax_stats';
+	protected $context = 'taxes_stats';
 
 	/**
 	 * Assign report columns once full table name has been assigned.
 	 */
 	protected function assign_report_columns() {
-		$table_name = self::get_db_table_name();
+		$table_name           = self::get_db_table_name();
 		$this->report_columns = array(
 			'tax_codes'    => 'COUNT(DISTINCT tax_rate_id) as tax_codes',
 			'total_tax'    => 'SUM(total_tax) AS total_tax',
@@ -65,31 +65,6 @@ class DataStore extends ReportsDataStore implements DataStoreInterface {
 			'shipping_tax' => 'SUM(shipping_tax) as shipping_tax',
 			'orders_count' => "COUNT( DISTINCT ( CASE WHEN parent_id = 0 THEN {$table_name}.order_id END ) ) as orders_count",
 		);
-	}
-
-	/**
-	 * Updates the database query with parameters used for Taxes report: categories and order status.
-	 *
-	 * @param array $query_args Query arguments supplied by the user.
-	 */
-	protected function get_sql_query_params( $query_args ) {
-		global $wpdb;
-
-		$order_tax_lookup_table = self::get_db_table_name();
-
-		$this->get_time_period_sql_params( $query_args, $order_tax_lookup_table );
-		$this->get_limit_sql_params( $query_args );
-		$this->get_order_by_sql_params( $query_args );
-
-		if ( isset( $query_args['taxes'] ) && ! empty( $query_args['taxes'] ) ) {
-			$allowed_taxes = self::get_filtered_ids( $query_args, 'taxes' );
-			$this->interval_query->add_sql_clause( 'where', "AND {$order_tax_lookup_table}.tax_rate_id IN ({$allowed_taxes})" );
-		}
-
-		$order_status_filter = $this->get_status_subquery( $query_args );
-		if ( $order_status_filter ) {
-			$this->interval_query->add_sql_clause( 'where', "AND ( {$order_status_filter} )" );
-		}
 	}
 
 	/**
@@ -106,10 +81,15 @@ class DataStore extends ReportsDataStore implements DataStoreInterface {
 			$taxes_where_clause .= " AND {$order_tax_lookup_table}.tax_rate_id IN ({$allowed_taxes})";
 		}
 
-		$this->get_time_period_sql_params( $query_args, $order_tax_lookup_table );
+		$order_status_filter = $this->get_status_subquery( $query_args );
+		if ( $order_status_filter ) {
+			$taxes_where_clause .= " AND ( {$order_status_filter} )";
+		}
+
+		$this->add_time_period_sql_params( $query_args, $order_tax_lookup_table );
 		$this->total_query->add_sql_clause( 'where', $taxes_where_clause );
 
-		$this->get_intervals_sql_params( $query_args, $order_tax_lookup_table );
+		$this->add_intervals_sql_params( $query_args, $order_tax_lookup_table );
 		$this->interval_query->add_sql_clause( 'where', $taxes_where_clause );
 		$this->interval_query->add_sql_clause( 'select', $this->get_sql_clause( 'select' ) . ' AS time_interval' );
 		$this->interval_query->add_sql_clause( 'where_time', $this->get_sql_clause( 'where_time' ) );
@@ -208,7 +188,7 @@ class DataStore extends ReportsDataStore implements DataStoreInterface {
 			); // WPCS: cache ok, DB call ok, unprepared SQL ok.
 
 			if ( null === $totals ) {
-				return new \WP_Error( 'woocommerce_reports_taxes_stats_result_failed', __( 'Sorry, fetching revenue data failed.', 'woocommerce-admin' ) );
+				return new \WP_Error( 'woocommerce_analytics_taxes_stats_result_failed', __( 'Sorry, fetching revenue data failed.', 'woocommerce-admin' ) );
 			}
 
 			// @todo remove these assignements when refactoring segmenter classes to use query objects.
@@ -242,7 +222,7 @@ class DataStore extends ReportsDataStore implements DataStoreInterface {
 			); // WPCS: cache ok, DB call ok, unprepared SQL ok.
 
 			if ( null === $intervals ) {
-				return new \WP_Error( 'woocommerce_reports_taxes_stats_result_failed', __( 'Sorry, fetching tax data failed.', 'woocommerce-admin' ) );
+				return new \WP_Error( 'woocommerce_analytics_taxes_stats_result_failed', __( 'Sorry, fetching tax data failed.', 'woocommerce-admin' ) );
 			}
 
 			$totals = (object) $this->cast_numbers( $totals[0] );

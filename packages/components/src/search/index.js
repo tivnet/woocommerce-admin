@@ -1,4 +1,3 @@
-/** @format */
 /**
  * External dependencies
  */
@@ -73,11 +72,13 @@ class Search extends Component {
 		const autocompleter = this.getAutocompleter();
 		const formattedOptions = [];
 
-		options.forEach( option => {
+		options.forEach( ( option ) => {
 			const formattedOption = {
 				key: autocompleter.getOptionIdentifier( option ),
 				label: autocompleter.getOptionLabel( option, query ),
-				keywords: autocompleter.getOptionKeywords( option ),
+				keywords: autocompleter
+					.getOptionKeywords( option )
+					.filter( Boolean ),
 				value: option,
 			};
 			formattedOptions.push( formattedOption );
@@ -87,8 +88,12 @@ class Search extends Component {
 	}
 
 	fetchOptions( previousOptions, query ) {
+		if ( ! query ) {
+			return [];
+		}
+
 		const autocompleter = this.getAutocompleter();
-		return autocompleter.options( query ).then( async response => {
+		return autocompleter.options( query ).then( async ( response ) => {
 			const options = this.getFormattedOptions( response, query );
 			this.setState( { options } );
 			return options;
@@ -99,20 +104,22 @@ class Search extends Component {
 		const { onChange } = this.props;
 		const autocompleter = this.getAutocompleter();
 
-		const formattedSelections = selected.map( option => {
-			return option.value ? autocompleter.getOptionCompletion( option.value ) : option;
+		const formattedSelections = selected.map( ( option ) => {
+			return option.value
+				? autocompleter.getOptionCompletion( option.value )
+				: option;
 		} );
 
 		onChange( formattedSelections );
 	}
 
 	appendFreeTextSearch( options, query ) {
-		const autocompleter = this.getAutocompleter();
 		const { allowFreeTextSearch } = this.props;
 
 		if ( ! allowFreeTextSearch ) {
 			return options;
 		}
+		const autocompleter = this.getAutocompleter();
 
 		return [ ...autocompleter.getFreeTextOptions( query ), ...options ];
 	}
@@ -129,7 +136,9 @@ class Search extends Component {
 			disabled,
 		} = this.props;
 		const { options } = this.state;
-		const inputType = autocompleter.inputType ? autocompleter.inputType : 'text';
+		const inputType = autocompleter.inputType
+			? autocompleter.inputType
+			: 'text';
 
 		return (
 			<div>
@@ -149,6 +158,7 @@ class Search extends Component {
 					onFilter={ this.appendFreeTextSearch }
 					onSearch={ this.fetchOptions }
 					options={ options }
+					searchDebounceTime={ 500 }
 					searchInputType={ inputType }
 					selected={ selected }
 					showClearButton={ showClearButton }
@@ -198,7 +208,8 @@ Search.propTypes = {
 	 */
 	selected: PropTypes.arrayOf(
 		PropTypes.shape( {
-			key: PropTypes.oneOfType( [ PropTypes.number, PropTypes.string ] ).isRequired,
+			key: PropTypes.oneOfType( [ PropTypes.number, PropTypes.string ] )
+				.isRequired,
 			label: PropTypes.string,
 		} )
 	),

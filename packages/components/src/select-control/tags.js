@@ -1,11 +1,9 @@
-/** @format */
 /**
  * External dependencies
  */
 import { __, sprintf } from '@wordpress/i18n';
 import { Button, Icon } from '@wordpress/components';
-import classnames from 'classnames';
-import { Component } from '@wordpress/element';
+import { Component, Fragment } from '@wordpress/element';
 import { findIndex } from 'lodash';
 import PropTypes from 'prop-types';
 
@@ -33,7 +31,10 @@ class Tags extends Component {
 		return () => {
 			const { selected, onChange } = this.props;
 			const i = findIndex( selected, { key } );
-			onChange( [ ...selected.slice( 0, i ), ...selected.slice( i + 1 ) ] );
+			onChange( [
+				...selected.slice( 0, i ),
+				...selected.slice( i + 1 ),
+			] );
 		};
 	}
 
@@ -43,39 +44,43 @@ class Tags extends Component {
 			return null;
 		}
 
-		const classes = classnames( 'woocommerce-select-control__tags', {
-			'has-clear': showClearButton,
-		} );
-
 		return (
-			<div className={ classes }>
-				{ selected.map( ( item, i ) => {
-					if ( ! item.label ) {
-						return null;
-					}
-					const screenReaderLabel = sprintf(
-						__( '%1$s (%2$s of %3$s)', 'woocommerce-admin' ),
-						item.label,
-						i + 1,
-						selected.length
-					);
-					return (
-						<Tag
-							key={ item.key }
-							id={ item.key }
-							label={ item.label }
-							remove={ this.removeResult }
-							screenReaderLabel={ screenReaderLabel }
-						/>
-					);
-				} ) }
+			<Fragment>
+				<div className="woocommerce-select-control__tags">
+					{ selected.map( ( item, i ) => {
+						if ( ! item.label ) {
+							return null;
+						}
+						const screenReaderLabel = sprintf(
+							__( '%1$s (%2$s of %3$s)', 'woocommerce-admin' ),
+							item.label,
+							i + 1,
+							selected.length
+						);
+						return (
+							<Tag
+								key={ item.key }
+								id={ item.key }
+								label={ item.label }
+								remove={ this.removeResult }
+								screenReaderLabel={ screenReaderLabel }
+							/>
+						);
+					} ) }
+				</div>
 				{ showClearButton && (
-					<Button className="woocommerce-select-control__clear" isLink onClick={ this.removeAll }>
+					<Button
+						className="woocommerce-select-control__clear"
+						isLink
+						onClick={ this.removeAll }
+					>
 						<Icon icon="dismiss" />
-						<span className="screen-reader-text">{ __( 'Clear all', 'woocommerce-admin' ) }</span>
+						<span className="screen-reader-text">
+							{ __( 'Clear all', 'woocommerce-admin' ) }
+						</span>
 					</Button>
 				) }
-			</div>
+			</Fragment>
 		);
 	}
 }
@@ -96,7 +101,8 @@ Tags.propTypes = {
 	 */
 	selected: PropTypes.arrayOf(
 		PropTypes.shape( {
-			key: PropTypes.oneOfType( [ PropTypes.number, PropTypes.string ] ).isRequired,
+			key: PropTypes.oneOfType( [ PropTypes.number, PropTypes.string ] )
+				.isRequired,
 			label: PropTypes.string,
 		} )
 	),

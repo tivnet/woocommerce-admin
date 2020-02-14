@@ -1,4 +1,3 @@
-/** @format */
 /**
  * External dependencies
  */
@@ -29,12 +28,12 @@ const charts = {
 
 const defaultCharts = [
 	{
-		label: __( 'Gross Revenue', 'woocommerce-admin' ),
+		label: __( 'Total Sales', 'woocommerce-admin' ),
 		report: 'revenue',
-		key: 'gross_revenue',
+		key: 'total_sales',
 	},
 	{
-		label: __( 'Net Revenue', 'woocommerce-admin' ),
+		label: __( 'Net Sales', 'woocommerce-admin' ),
 		report: 'revenue',
 		key: 'net_revenue',
 	},
@@ -54,7 +53,7 @@ const defaultCharts = [
 		key: 'items_sold',
 	},
 	{
-		label: __( 'Refunds', 'woocommerce-admin' ),
+		label: __( 'Returns', 'woocommerce-admin' ),
 		report: 'revenue',
 		key: 'refunds',
 	},
@@ -97,8 +96,10 @@ const defaultCharts = [
 
 export const uniqCharts = applyFilters(
 	DASHBOARD_CHARTS_FILTER,
-	defaultCharts.map( chartDef => ( {
-		...charts[ chartDef.report ].find( chart => chart.key === chartDef.key ),
+	defaultCharts.map( ( chartDef ) => ( {
+		...charts[ chartDef.report ].find(
+			( chart ) => chart.key === chartDef.key
+		),
 		label: chartDef.label,
 		endpoint: chartDef.report,
 	} ) )

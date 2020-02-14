@@ -1,4 +1,3 @@
-/** @format */
 /**
  * External dependencies
  */
@@ -9,7 +8,7 @@ import { partial } from 'lodash';
 /**
  * WooCommerce dependencies
  */
-import { getAdminLink, getHistory } from '@woocommerce/navigation';
+import { getHistory } from '@woocommerce/navigation';
 
 /**
  * Use `Link` to create a link to another resource. It accepts a type to automatically
@@ -36,24 +35,20 @@ class Link extends Component {
 	render() {
 		const { children, href, type, ...props } = this.props;
 
-		let path;
-		if ( 'wp-admin' === type ) {
-			path = getAdminLink( href );
-		} else {
-			path = href;
-		}
-
 		const passProps = {
 			...props,
 			'data-link-type': type,
 		};
 
-		if ( 'wc-admin' === type ) {
-			passProps.onClick = partial( this.wcAdminLinkHandler, passProps.onClick );
+		if ( type === 'wc-admin' ) {
+			passProps.onClick = partial(
+				this.wcAdminLinkHandler,
+				passProps.onClick
+			);
 		}
 
 		return (
-			<a href={ path } { ...passProps }>
+			<a href={ href } { ...passProps }>
 				{ children }
 			</a>
 		);

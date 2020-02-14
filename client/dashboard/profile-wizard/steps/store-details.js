@@ -1,45 +1,53 @@
-/** @format */
 /**
  * External dependencies
  */
 import { __ } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
-import { Button, CheckboxControl } from 'newspack-components';
+import { Button, CheckboxControl } from '@wordpress/components';
 import { Component, Fragment } from '@wordpress/element';
 import { compose } from '@wordpress/compose';
 import { withDispatch } from '@wordpress/data';
 import { recordEvent } from 'lib/tracks';
-import { without, get } from 'lodash';
 
 /**
- * Internal depdencies
+ * WooCommerce dependencies
  */
-import { getCountryCode } from 'dashboard/utils';
 import { H, Card, Form } from '@woocommerce/components';
 import { getCurrencyData } from '@woocommerce/currency';
-import withSelect from 'wc-api/with-select';
+
+/**
+ * Internal dependencies
+ */
+import { setCurrency } from 'lib/currency-format';
+import { getCountryCode, getCurrencyRegion } from 'dashboard/utils';
 import {
 	StoreAddress,
 	validateStoreAddress,
 } from '../../components/settings/general/store-address';
 import UsageModal from './usage-modal';
-import { getSetting } from '@woocommerce/wc-admin-settings';
+import withSelect from 'wc-api/with-select';
 
 class StoreDetails extends Component {
 	constructor( props ) {
 		super( ...arguments );
-		const settings = get( props, 'settings', false );
-		const profileItems = get( props, 'profileItems', {} );
+		const { profileItems, settings } = props;
 
 		this.state = {
 			showUsageModal: false,
 		};
 
+		// Check if a store address is set so that we don't default
+		// to WooCommerce's default country of the UK.
+		const countryState =
+			( settings.woocommerce_store_address &&
+				settings.woocommerce_default_country ) ||
+			'';
+
 		this.initialValues = {
 			addressLine1: settings.woocommerce_store_address || '',
 			addressLine2: settings.woocommerce_store_address_2 || '',
 			city: settings.woocommerce_store_city || '',
-			countryState: settings.woocommerce_default_country || '',
+			countryState,
 			postCode: settings.woocommerce_store_postcode || '',
 			isClient: profileItems.setup_client || false,
 		};
@@ -49,7 +57,10 @@ class StoreDetails extends Component {
 	}
 
 	componentWillUnmount() {
-		apiFetch( { path: '/wc-admin/v1/onboarding/tasks/create_store_pages', method: 'POST' } );
+		apiFetch( {
+			path: '/wc-admin/onboarding/tasks/create_store_pages',
+			method: 'POST',
+		} );
 	}
 
 	deriveCurrencySettings( countryState ) {
@@ -57,15 +68,7 @@ class StoreDetails extends Component {
 			return null;
 		}
 
-		let region = getCountryCode( countryState );
-		const euCountries = without(
-			getSetting( 'onboarding', { euCountries: [] } ).euCountries,
-			'GB'
-		);
-		if ( euCountries.includes( region ) ) {
-			region = 'EU';
-		}
-
+		const region = getCurrencyRegion( countryState );
 		const currencyData = getCurrencyData();
 		return currencyData[ region ] || currencyData.US;
 	}
@@ -73,7 +76,7 @@ class StoreDetails extends Component {
 	onSubmit( values ) {
 		const { profileItems } = this.props;
 
-		if ( 'already-installed' === profileItems.plugins ) {
+		if ( profileItems.plugins === 'already-installed' ) {
 			this.setState( { showUsageModal: true } );
 			return;
 		}
@@ -91,7 +94,10 @@ class StoreDetails extends Component {
 			isProfileItemsError,
 		} = this.props;
 
-		const currencySettings = this.deriveCurrencySettings( values.countryState );
+		const currencySettings = this.deriveCurrencySettings(
+			values.countryState
+		);
+		setCurrency( currencySettings );
 
 		recordEvent( 'storeprofiler_store_details_continue', {
 			store_country: getCountryCode( values.countryState ),
@@ -107,9 +113,11 @@ class StoreDetails extends Component {
 				woocommerce_store_city: values.city,
 				woocommerce_store_postcode: values.postCode,
 				woocommerce_currency: currencySettings.code,
-				woocommerce_currency_pos: currencySettings.position,
-				woocommerce_price_thousand_sep: currencySettings.grouping,
-				woocommerce_price_decimal_sep: currencySettings.decimal,
+				woocommerce_currency_pos: currencySettings.symbolPosition,
+				woocommerce_price_thousand_sep:
+					currencySettings.thousandSeparator,
+				woocommerce_price_decimal_sep:
+					currencySettings.decimalSeparator,
 				woocommerce_price_num_decimals: currencySettings.precision,
 			},
 		} );
@@ -121,7 +129,10 @@ class StoreDetails extends Component {
 		} else {
 			createNotice(
 				'error',
-				__( 'There was a problem saving your store details.', 'woocommerce-admin' )
+				__(
+					'There was a problem saving your store details.',
+					'woocommerce-admin'
+				)
 			);
 		}
 	}
@@ -147,21 +158,46 @@ class StoreDetails extends Component {
 						onSubmitCallback={ this.onSubmit }
 						validate={ validateStoreAddress }
 					>
-						{ ( { getInputProps, handleSubmit, values, isValidForm, setValue } ) => (
+						{ ( {
+							getInputProps,
+							handleSubmit,
+							values,
+							isValidForm,
+							setValue,
+						} ) => (
 							<Fragment>
 								{ showUsageModal && (
 									<UsageModal
-										onContinue={ () => this.onContinue( values ) }
-										onClose={ () => this.setState( { showUsageModal: false } ) }
+										onContinue={ () =>
+											this.onContinue( values )
+										}
+										onClose={ () =>
+											this.setState( {
+												showUsageModal: false,
+											} )
+										}
 									/>
 								) }
-								<StoreAddress getInputProps={ getInputProps } setValue={ setValue } />
-								<CheckboxControl
-									label={ __( "I'm setting up a store for a client", 'woocommerce-admin' ) }
-									{ ...getInputProps( 'isClient' ) }
+								<StoreAddress
+									getInputProps={ getInputProps }
+									setValue={ setValue }
 								/>
 
-								<Button isPrimary onClick={ handleSubmit } disabled={ ! isValidForm }>
+								<div className="woocommerce-profile-wizard__client">
+									<CheckboxControl
+										label={ __(
+											"I'm setting up a store for a client",
+											'woocommerce-admin'
+										) }
+										{ ...getInputProps( 'isClient' ) }
+									/>
+								</div>
+
+								<Button
+									isPrimary
+									onClick={ handleSubmit }
+									disabled={ ! isValidForm }
+								>
 									{ __( 'Continue', 'woocommerce-admin' ) }
 								</Button>
 							</Fragment>
@@ -174,7 +210,7 @@ class StoreDetails extends Component {
 }
 
 export default compose(
-	withSelect( select => {
+	withSelect( ( select ) => {
 		const {
 			getSettings,
 			getSettingsError,
@@ -199,7 +235,7 @@ export default compose(
 			settings,
 		};
 	} ),
-	withDispatch( dispatch => {
+	withDispatch( ( dispatch ) => {
 		const { createNotice } = dispatch( 'core/notices' );
 		const { updateSettings, updateProfileItems } = dispatch( 'wc-api' );
 

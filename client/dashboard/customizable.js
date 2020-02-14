@@ -1,4 +1,3 @@
-/** @format */
 /**
  * External dependencies
  */
@@ -8,11 +7,12 @@ import { compose } from '@wordpress/compose';
 import { partial, filter, get } from 'lodash';
 import { IconButton, Icon, Dropdown, Button } from '@wordpress/components';
 import { withDispatch } from '@wordpress/data';
+import { applyFilters } from '@wordpress/hooks';
 
 /**
  * WooCommerce dependencies
  */
-import { H, ReportFilters } from '@woocommerce/components';
+import { H } from '@woocommerce/components';
 
 /**
  * Internal dependencies
@@ -23,8 +23,17 @@ import Section from './section';
 import withSelect from 'wc-api/with-select';
 import { recordEvent } from 'lib/tracks';
 import TaskList from './task-list';
-import { getTasks } from './task-list/tasks';
+import { getAllTasks } from './task-list/tasks';
 import { isOnboardingEnabled } from 'dashboard/utils';
+import {
+	getCurrentDates,
+	getDateParamsFromQuery,
+	isoDateFormat,
+} from 'lib/date';
+import ReportFilters from 'analytics/components/report-filters';
+
+const DASHBOARD_FILTERS_FILTER = 'woocommerce_admin_dashboard_filters';
+const filters = applyFilters( DASHBOARD_FILTERS_FILTER, [] );
 
 class CustomizableDashboard extends Component {
 	constructor( props ) {
@@ -42,17 +51,21 @@ class CustomizableDashboard extends Component {
 		if ( ! prefSections || prefSections.length === 0 ) {
 			return defaultSections;
 		}
-		const defaultKeys = defaultSections.map( section => section.key );
-		const prefKeys = prefSections.map( section => section.key );
+		const defaultKeys = defaultSections.map( ( section ) => section.key );
+		const prefKeys = prefSections.map( ( section ) => section.key );
 		const keys = new Set( [ ...prefKeys, ...defaultKeys ] );
 		const sections = [];
 
-		keys.forEach( key => {
-			const defaultSection = defaultSections.find( section => section.key === key );
+		keys.forEach( ( key ) => {
+			const defaultSection = defaultSections.find(
+				( section ) => section.key === key
+			);
 			if ( ! defaultSection ) {
 				return;
 			}
-			const prefSection = prefSections.find( section => section.key === key );
+			const prefSection = prefSections.find(
+				( section ) => section.key === key
+			);
 
 			sections.push( {
 				...defaultSection,
@@ -69,7 +82,7 @@ class CustomizableDashboard extends Component {
 	}
 
 	updateSection( updatedKey, newSettings ) {
-		const newSections = this.state.sections.map( section => {
+		const newSections = this.state.sections.map( ( section ) => {
 			if ( section.key === updatedKey ) {
 				return {
 					...section,
@@ -82,13 +95,15 @@ class CustomizableDashboard extends Component {
 	}
 
 	onChangeHiddenBlocks( updatedKey ) {
-		return updatedHiddenBlocks => {
-			this.updateSection( updatedKey, { hiddenBlocks: updatedHiddenBlocks } );
+		return ( updatedHiddenBlocks ) => {
+			this.updateSection( updatedKey, {
+				hiddenBlocks: updatedHiddenBlocks,
+			} );
 		};
 	}
 
 	onSectionTitleUpdate( updatedKey ) {
-		return updatedTitle => {
+		return ( updatedTitle ) => {
 			recordEvent( 'dash_section_rename', { key: updatedKey } );
 			this.updateSection( updatedKey, { title: updatedTitle } );
 		};
@@ -102,7 +117,7 @@ class CustomizableDashboard extends Component {
 			}
 			// When toggling visibility, place section at the end of the array.
 			const sections = [ ...this.state.sections ];
-			const index = sections.findIndex( s => key === s.key );
+			const index = sections.findIndex( ( s ) => key === s.key );
 			const toggledSection = sections.splice( index, 1 ).shift();
 			toggledSection.isVisible = ! toggledSection.isVisible;
 			sections.push( toggledSection );
@@ -110,7 +125,9 @@ class CustomizableDashboard extends Component {
 			if ( toggledSection.isVisible ) {
 				recordEvent( 'dash_section_add', { key: toggledSection.key } );
 			} else {
-				recordEvent( 'dash_section_remove', { key: toggledSection.key } );
+				recordEvent( 'dash_section_remove', {
+					key: toggledSection.key,
+				} );
 			}
 
 			this.updateSections( sections );
@@ -136,7 +153,7 @@ class CustomizableDashboard extends Component {
 
 			const eventProps = {
 				key: movedSection.key,
-				direction: 0 < change ? 'down' : 'up',
+				direction: change > 0 ? 'down' : 'up',
 			};
 			recordEvent( 'dash_section_order_change', eventProps );
 		} else {
@@ -147,9 +164,11 @@ class CustomizableDashboard extends Component {
 
 	renderAddMore() {
 		const { sections } = this.state;
-		const hiddenSections = sections.filter( section => false === section.isVisible );
+		const hiddenSections = sections.filter(
+			( section ) => section.isVisible === false
+		);
 
-		if ( 0 === hiddenSections.length ) {
+		if ( hiddenSections.length === 0 ) {
 			return null;
 		}
 
@@ -167,17 +186,31 @@ class CustomizableDashboard extends Component {
 				) }
 				renderContent={ ( { onToggle } ) => (
 					<Fragment>
-						<H>{ __( 'Dashboard Sections', 'woocommerce-admin' ) }</H>
+						<H>
+							{ __( 'Dashboard Sections', 'woocommerce-admin' ) }
+						</H>
 						<div className="woocommerce-dashboard-section__add-more-choices">
-							{ hiddenSections.map( section => {
+							{ hiddenSections.map( ( section ) => {
 								return (
 									<Button
 										key={ section.key }
-										onClick={ this.toggleVisibility( section.key, onToggle ) }
+										onClick={ this.toggleVisibility(
+											section.key,
+											onToggle
+										) }
 										className="woocommerce-dashboard-section__add-more-btn"
-										title={ sprintf( __( 'Add %s section', 'woocommerce-admin' ), section.title ) }
+										title={ sprintf(
+											__(
+												'Add %s section',
+												'woocommerce-admin'
+											),
+											section.title
+										) }
 									>
-										<Icon icon={ section.icon } size={ 30 } />
+										<Icon
+											icon={ section.icon }
+											size={ 30 }
+										/>
 										<span className="woocommerce-dashboard-section__add-more-btn-title">
 											{ section.title }
 										</span>
@@ -194,9 +227,6 @@ class CustomizableDashboard extends Component {
 	render() {
 		const { query, path, taskListHidden, taskListCompleted } = this.props;
 		const { sections } = this.state;
-		const visibleSectionKeys = sections
-			.filter( section => section.isVisible )
-			.map( section => section.key );
 
 		if (
 			isOnboardingEnabled() &&
@@ -207,6 +237,26 @@ class CustomizableDashboard extends Component {
 			return <TaskList query={ query } />;
 		}
 
+		const { period, compare, before, after } = getDateParamsFromQuery(
+			query
+		);
+		const {
+			primary: primaryDate,
+			secondary: secondaryDate,
+		} = getCurrentDates( query );
+		const dateQuery = {
+			period,
+			compare,
+			before,
+			after,
+			primaryDate,
+			secondaryDate,
+		};
+
+		const visibleSectionKeys = sections
+			.filter( ( section ) => section.isVisible )
+			.map( ( section ) => section.key );
+
 		return (
 			<Fragment>
 				{ isOnboardingEnabled() &&
@@ -214,7 +264,14 @@ class CustomizableDashboard extends Component {
 					! taskListHidden &&
 					taskListCompleted && <TaskList query={ query } inline /> }
 
-				<ReportFilters query={ query } path={ path } />
+				<ReportFilters
+					report="dashboard"
+					query={ query }
+					path={ path }
+					dateQuery={ dateQuery }
+					isoDateFormat={ isoDateFormat }
+					filters={ filters }
+				/>
 				{ sections.map( ( section, index ) => {
 					if ( section.isVisible ) {
 						return (
@@ -222,15 +279,28 @@ class CustomizableDashboard extends Component {
 								component={ section.component }
 								hiddenBlocks={ section.hiddenBlocks }
 								key={ section.key }
-								onChangeHiddenBlocks={ this.onChangeHiddenBlocks( section.key ) }
-								onTitleUpdate={ this.onSectionTitleUpdate( section.key ) }
+								onChangeHiddenBlocks={ this.onChangeHiddenBlocks(
+									section.key
+								) }
+								onTitleUpdate={ this.onSectionTitleUpdate(
+									section.key
+								) }
 								path={ path }
 								query={ query }
 								title={ section.title }
 								onMove={ partial( this.onMove, index ) }
-								onRemove={ this.toggleVisibility( section.key ) }
-								isFirst={ section.key === visibleSectionKeys[ 0 ] }
-								isLast={ section.key === visibleSectionKeys[ visibleSectionKeys.length - 1 ] }
+								onRemove={ this.toggleVisibility(
+									section.key
+								) }
+								isFirst={
+									section.key === visibleSectionKeys[ 0 ]
+								}
+								isLast={
+									section.key ===
+									visibleSectionKeys[
+										visibleSectionKeys.length - 1
+									]
+								}
 							/>
 						);
 					}
@@ -244,7 +314,9 @@ class CustomizableDashboard extends Component {
 
 export default compose(
 	withSelect( ( select, props ) => {
-		const { getCurrentUserData, getProfileItems, getOptions } = select( 'wc-api' );
+		const { getCurrentUserData, getProfileItems, getOptions } = select(
+			'wc-api'
+		);
 		const userData = getCurrentUserData();
 
 		const withSelectData = {
@@ -253,27 +325,30 @@ export default compose(
 
 		if ( isOnboardingEnabled() ) {
 			const profileItems = getProfileItems();
-			const tasks = getTasks( {
+			const tasks = getAllTasks( {
 				profileItems,
-				options: getOptions( [ 'woocommerce_onboarding_payments' ] ),
+				options: getOptions( [ 'woocommerce_task_list_payments' ] ),
 				query: props.query,
 			} );
-			const visibleTasks = filter( tasks, task => task.visible );
-			const completedTasks = filter( tasks, task => task.visible && task.completed );
+			const visibleTasks = filter( tasks, ( task ) => task.visible );
+			const completedTasks = filter(
+				tasks,
+				( task ) => task.visible && task.completed
+			);
 
-			withSelectData.taskListCompleted = visibleTasks.length === completedTasks.length;
+			withSelectData.taskListCompleted =
+				visibleTasks.length === completedTasks.length;
 			withSelectData.taskListHidden =
-				'yes' ===
 				get(
 					getOptions( [ 'woocommerce_task_list_hidden' ] ),
 					[ 'woocommerce_task_list_hidden' ],
 					'no'
-				);
+				) === 'yes';
 		}
 
 		return withSelectData;
 	} ),
-	withDispatch( dispatch => {
+	withDispatch( ( dispatch ) => {
 		const { updateCurrentUserData } = dispatch( 'wc-api' );
 
 		return {

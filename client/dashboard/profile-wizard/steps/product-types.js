@@ -1,11 +1,10 @@
-/** @format */
 /**
  * External dependencies
  */
 import { __ } from '@wordpress/i18n';
 import { Component, Fragment } from '@wordpress/element';
 import { compose } from '@wordpress/compose';
-import { Button, CheckboxControl } from 'newspack-components';
+import { Button, CheckboxControl } from '@wordpress/components';
 import { includes, filter, get } from 'lodash';
 import interpolateComponents from 'interpolate-components';
 import { withDispatch } from '@wordpress/data';
@@ -35,7 +34,10 @@ class ProductTypes extends Component {
 	async validateField() {
 		const error = this.state.selected.length
 			? null
-			: __( 'Please select at least one product type', 'woocommerce-admin' );
+			: __(
+					'Please select at least one product type',
+					'woocommerce-admin'
+			  );
 		this.setState( { error } );
 	}
 
@@ -45,7 +47,12 @@ class ProductTypes extends Component {
 			return;
 		}
 
-		const { createNotice, goToNextStep, isError, updateProfileItems } = this.props;
+		const {
+			createNotice,
+			goToNextStep,
+			isError,
+			updateProfileItems,
+		} = this.props;
 
 		recordEvent( 'storeprofiler_store_product_type_continue', {
 			product_type: this.state.selected,
@@ -57,18 +64,21 @@ class ProductTypes extends Component {
 		} else {
 			createNotice(
 				'error',
-				__( 'There was a problem updating your product types.', 'woocommerce-admin' )
+				__(
+					'There was a problem updating your product types.',
+					'woocommerce-admin'
+				)
 			);
 		}
 	}
 
 	onChange( slug ) {
 		this.setState(
-			state => {
+			( state ) => {
 				if ( includes( state.selected, slug ) ) {
 					return {
 						selected:
-							filter( state.selected, value => {
+							filter( state.selected, ( value ) => {
 								return value !== slug;
 							} ) || [],
 					};
@@ -84,7 +94,9 @@ class ProductTypes extends Component {
 	}
 
 	onLearnMore( slug ) {
-		recordEvent( 'storeprofiler_store_product_type_learn_more', { product_type: slug } );
+		recordEvent( 'storeprofiler_store_product_type_learn_more', {
+			product_type: slug,
+		} );
 	}
 
 	render() {
@@ -93,32 +105,48 @@ class ProductTypes extends Component {
 		return (
 			<Fragment>
 				<H className="woocommerce-profile-wizard__header-title">
-					{ __( 'What type of products will be listed?', 'woocommerce-admin' ) }
+					{ __(
+						'What type of products will be listed?',
+						'woocommerce-admin'
+					) }
 				</H>
 				<p>{ __( 'Choose any that apply' ) }</p>
 
 				<Card>
 					<div className="woocommerce-profile-wizard__checkbox-group">
-						{ Object.keys( productTypes ).map( slug => {
-							const helpText = interpolateComponents( {
-								mixedString:
-									productTypes[ slug ].description +
-									( productTypes[ slug ].more_url ? ' {{moreLink/}}' : '' ),
-								components: {
-									moreLink: productTypes[ slug ].more_url ? (
-										<Link
-											href={ productTypes[ slug ].more_url }
-											target="_blank"
-											type="external"
-											onClick={ () => this.onLearnMore( slug ) }
-										>
-											{ __( 'Learn more', 'woocommerce-admin' ) }
-										</Link>
-									) : (
-										''
-									),
-								},
-							} );
+						{ Object.keys( productTypes ).map( ( slug ) => {
+							const helpText =
+								productTypes[ slug ].description &&
+								interpolateComponents( {
+									mixedString:
+										productTypes[ slug ].description +
+										( productTypes[ slug ].more_url
+											? ' {{moreLink/}}'
+											: '' ),
+									components: {
+										moreLink: productTypes[ slug ]
+											.more_url ? (
+												<Link
+													href={
+														productTypes[ slug ]
+															.more_url
+													}
+													target="_blank"
+													type="external"
+													onClick={ () =>
+														this.onLearnMore( slug )
+													}
+												>
+													{ __(
+														'Learn more',
+														'woocommerce-admin'
+													) }
+												</Link>
+										) : (
+											''
+										),
+									},
+								} );
 
 							return (
 								<CheckboxControl
@@ -127,10 +155,15 @@ class ProductTypes extends Component {
 									help={ helpText }
 									onChange={ () => this.onChange( slug ) }
 									checked={ selected.includes( slug ) }
+									className="woocommerce-profile-wizard__checkbox"
 								/>
 							);
 						} ) }
-						{ error && <span className="woocommerce-profile-wizard__error">{ error }</span> }
+						{ error && (
+							<span className="woocommerce-profile-wizard__error">
+								{ error }
+							</span>
+						) }
 					</div>
 
 					<Button
@@ -148,7 +181,7 @@ class ProductTypes extends Component {
 }
 
 export default compose(
-	withSelect( select => {
+	withSelect( ( select ) => {
 		const { getProfileItems, getProfileItemsError } = select( 'wc-api' );
 
 		return {
@@ -156,7 +189,7 @@ export default compose(
 			profileItems: getProfileItems(),
 		};
 	} ),
-	withDispatch( dispatch => {
+	withDispatch( ( dispatch ) => {
 		const { updateProfileItems } = dispatch( 'wc-api' );
 		const { createNotice } = dispatch( 'core/notices' );
 

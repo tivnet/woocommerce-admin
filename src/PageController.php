@@ -451,10 +451,6 @@ class PageController {
 	 * Set up a div for the app to render into.
 	 */
 	public static function page_wrapper() {
-		?>
-		<div class="wrap">
-			<div id="root"></div>
-		</div>
-		<?php
+		Loader::page_wrapper();
 	}
 }

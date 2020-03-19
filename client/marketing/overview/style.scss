@@ -86,13 +86,43 @@
 	}
 }
 
-.woocommerce-slide-animation {
-	display: block;
-	width: 100%;
+//.woocommerce-slide-animation {
+//	display: block;
+//	width: 100%;
+//	overflow: hidden;
+//
+//	& > div {
+//		white-space: normal !important;
+//		display: block;
+//	}
+//}
+
+
+.woocommerce-marketing-knowledgebase-slider {
+	position: relative;
+	height: 200px;
 	overflow: hidden;
 
-	& > div {
-		white-space: normal !important;
-		display: block;
+	&__slide {
+		position: absolute;
+		top: 0;
+		left: 0;
+		transition: transform 500ms ease-in;
+	}
+
+	.slide-enter {
+		transform: translateX(-100%);
+	}
+
+	.slide-enter-active {
+		transform: translateX(0);
+	}
+
+	.slide-exit {
+		transform: translateX(0);
+	}
+
+	.slide-exit-active {
+		transform: translateX(100%);
 	}
 }

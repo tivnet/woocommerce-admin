@@ -38,3 +38,61 @@
 		max-width: 231px;
 	}
 }
+
+.container {
+	overflow: hidden;
+	width: 100%;
+}
+
+.woocommerce-marketing-knowledgebase-card__page {
+	margin-bottom: 16px;
+	width: 100%;
+	display: flex;
+}
+
+.woocommerce-marketing-knowledgebase-card__post {
+	display: flex;
+	width: 100%;
+
+	> img {
+		display: block;
+		width: 100%;
+		margin-right: 16px;
+	}
+
+	> div {
+
+	}
+
+	h3 {
+		margin-top: 0;
+		margin-bottom: 8px;
+		font-size: 16px;
+		line-height: 24px;
+		font-weight: 600;
+		white-space: normal;
+	}
+
+	.woocommerce-marketing-knowledgebase-card__post-meta {
+		display: flex;
+		justify-content: flex-start;
+		align-items: center;
+		font-size: 12px;
+		line-height: 16px;
+
+		.author {
+			margin-right: 5px;
+		}
+	}
+}
+
+.woocommerce-slide-animation {
+	display: block;
+	width: 100%;
+	overflow: hidden;
+
+	& > div {
+		white-space: normal !important;
+		display: block;
+	}
+}

@@ -12,6 +12,7 @@ import { filter } from 'lodash';
  * WooCommerce dependencies
  */
 import { Card, H } from '@woocommerce/components';
+import { PLUGINS_STORE_NAME } from '@woocommerce/data';
 
 /**
  * Internal dependencies
@@ -262,10 +263,11 @@ export default compose(
 	withSelect( ( select ) => {
 		const {
 			getProfileItemsError,
-			getActivePlugins,
 			getProfileItems,
 			isGetProfileItemsRequesting,
 		} = select( 'wc-api' );
+
+		const { getActivePlugins } = select( PLUGINS_STORE_NAME );
 
 		const isProfileItemsError = Boolean( getProfileItemsError() );
 		const activePlugins = getActivePlugins();

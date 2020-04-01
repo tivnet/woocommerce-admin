@@ -15,7 +15,7 @@ import { withDispatch, withSelect } from '@wordpress/data';
 import { Card, Link, Stepper } from '@woocommerce/components';
 import { getAdminLink, getSetting } from '@woocommerce/wc-admin-settings';
 import { getHistory, getNewPath } from '@woocommerce/navigation';
-import { SETTINGS_STORE_NAME } from '@woocommerce/data';
+import { SETTINGS_STORE_NAME, PLUGINS_STORE_NAME } from '@woocommerce/data';
 
 /**
  * Internal dependencies
@@ -29,8 +29,8 @@ import withWCApiSelect from 'wc-api/with-select';
 import { recordEvent } from 'lib/tracks';
 
 class Shipping extends Component {
-	constructor() {
-		super( ...arguments );
+	constructor( props ) {
+		super( props );
 
 		this.initialState = {
 			isPending: false,
@@ -39,8 +39,7 @@ class Shipping extends Component {
 		};
 
 		// Cache active plugins to prevent removal mid-step.
-		const { activePlugins = [] } = getSetting( 'onboarding', {} );
-		this.activePlugins = activePlugins;
+		this.activePlugins = props.activePlugins;
 		this.state = this.initialState;
 		this.completeStep = this.completeStep.bind( this );
 	}
@@ -323,17 +322,20 @@ class Shipping extends Component {
 }
 
 export default compose(
-	withWCApiSelect( select => {
+	withWCApiSelect( ( select ) => {
 		const { isJetpackConnected } = select( 'wc-api' );
 
 		return {
 			isJetpackConnected: isJetpackConnected(),
 		};
 	} ),
-	withSelect( select => {
-		const { getSettings, getSettingsError, isGetSettingsRequesting } = select(
-			SETTINGS_STORE_NAME
-		);
+	withSelect( ( select ) => {
+		const {
+			getSettings,
+			getSettingsError,
+			isGetSettingsRequesting,
+		} = select( SETTINGS_STORE_NAME );
+		const { getActivePlugins } = select( PLUGINS_STORE_NAME );
 
 		const { general: settings = {} } = getSettings( 'general' );
 		const isSettingsError = Boolean( getSettingsError( 'general' ) );
@@ -348,6 +350,7 @@ export default compose(
 			? countries.find( ( c ) => c.code === countryCode )
 			: null;
 		const countryName = country ? country.name : null;
+		const activePlugins = getActivePlugins();
 
 		return {
 			countryCode,
@@ -355,6 +358,7 @@ export default compose(
 			isSettingsError,
 			isSettingsRequesting,
 			settings,
+			activePlugins,
 		};
 	} ),
 	withDispatch( ( dispatch ) => {

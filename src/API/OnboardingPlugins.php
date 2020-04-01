@@ -67,6 +67,19 @@ class OnboardingPlugins extends \WC_REST_Data_Controller {
 
 		register_rest_route(
 			$this->namespace,
+			'/' . $this->rest_base . '/installed',
+			array(
+				array(
+					'methods'             => \WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'installed_plugins' ),
+					'permission_callback' => array( $this, 'get_item_permissions_check' ),
+				),
+				'schema' => array( $this, 'get_item_schema' ),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
 			'/' . $this->rest_base . '/activate',
 			array(
 				array(
@@ -274,6 +287,17 @@ class OnboardingPlugins extends \WC_REST_Data_Controller {
 		$plugins = Onboarding::get_active_plugins();
 		return( array(
 			'plugins' => array_values( $plugins ),
+		) );
+	}
+
+	/**
+	 * Returns a list of installed plugins.
+	 *
+	 * @return array Installed plugins
+	 */
+	public function installed_plugins() {
+		return( array(
+			'plugins' => PluginsHelper::get_installed_plugin_slugs(),
 		) );
 	}
 
@@ -505,7 +529,7 @@ class OnboardingPlugins extends \WC_REST_Data_Controller {
 		if ( 'US' === WC()->countries->get_base_country() ) {
 			$profile = get_option( Onboarding::PROFILE_DATA_OPTION, array() );
 			if ( ! empty( $profile['industry'] ) ) {
-				$has_cbd_industry = array_search( 'cbd-other-hemp-derived-products', array_column( $profile['industry'], 'slug' ) );
+				$has_cbd_industry = array_search( 'cbd-other-hemp-derived-products', array_column( $profile['industry'], 'slug' ), true );
 			}
 		}
 

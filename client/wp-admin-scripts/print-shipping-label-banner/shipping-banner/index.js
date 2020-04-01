@@ -11,6 +11,11 @@ import PropTypes from 'prop-types';
 import { get, isArray } from 'lodash';
 
 /**
+ * WooCommerce dependencies
+ */
+import { PLUGINS_STORE_NAME } from '@woocommerce/data';
+
+/**
  * Internal dependencies
  */
 import '../style.scss';
@@ -502,7 +507,6 @@ export default compose(
 	withSelect( ( select ) => {
 		const wcsPluginSlug = 'woocommerce-services';
 		const {
-			getActivePlugins,
 			getPluginInstallations,
 			getPluginActivations,
 			getPluginActivationErrors,
@@ -511,6 +515,7 @@ export default compose(
 			isPluginActivateRequesting,
 			isPluginInstallRequesting,
 		} = select( 'wc-api' );
+		const { getActivePlugins } = select( PLUGINS_STORE_NAME );
 
 		const isRequesting =
 			isPluginActivateRequesting() || isPluginInstallRequesting();

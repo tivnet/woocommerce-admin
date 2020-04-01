@@ -16,7 +16,6 @@ import { pluginNames } from './constants';
 
 function read( resourceNames, fetch = apiFetch ) {
 	return [
-		...readActivePlugins( resourceNames, fetch ),
 		...readProfileItems( resourceNames, fetch ),
 		...readJetpackStatus( resourceNames, fetch ),
 		...readJetpackConnectUrl( resourceNames, fetch ),
@@ -108,35 +107,6 @@ function profileItemToResource( items ) {
 			lastReceived: Date.now(),
 		},
 		...resources,
-	};
-}
-
-function readActivePlugins( resourceNames, fetch ) {
-	const resourceName = 'active-plugins';
-	if ( resourceNames.includes( resourceName ) ) {
-		const url = WC_ADMIN_NAMESPACE + '/onboarding/plugins/active';
-
-		return [
-			fetch( { path: url } )
-				.then( activePluginsToResources )
-				.catch( ( error ) => {
-					return {
-						[ resourceName ]: { error: String( error.message ) },
-					};
-				} ),
-		];
-	}
-
-	return [];
-}
-
-function activePluginsToResources( items ) {
-	const { plugins } = items;
-	const resourceName = 'active-plugins';
-	return {
-		[ resourceName ]: {
-			data: plugins,
-		},
 	};
 }
 

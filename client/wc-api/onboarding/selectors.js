@@ -118,22 +118,6 @@ const isJetpackConnected = ( getResource, requireResource ) => (
 	return ( data && data.isActive ) || false;
 };
 
-const getActivePlugins = ( getResource, requireResource ) => (
-	requirement = DEFAULT_REQUIREMENT
-) => {
-	const resourceName = 'active-plugins';
-	const data = requireResource( requirement, resourceName ).data || [];
-	if ( ! data.length ) {
-		return getSetting( 'onboarding', {}, ( ob ) => ob.activePlugins || [] );
-	}
-
-	return data;
-};
-
-const getActivePluginsError = ( getResource ) => () => {
-	return getResource( 'active-plugins' ).error;
-};
-
 const isGetActivePluginsRequesting = ( getResource ) => () => {
 	const { lastReceived, lastRequested } = getResource( 'active-plugins' );
 
@@ -216,8 +200,6 @@ export default {
 	getJetpackConnectUrl,
 	getJetpackConnectUrlError,
 	isGetJetpackConnectUrlRequesting,
-	getActivePlugins,
-	getActivePluginsError,
 	isGetActivePluginsRequesting,
 	getPluginActivations,
 	getPluginInstallations,

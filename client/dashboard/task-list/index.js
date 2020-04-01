@@ -14,7 +14,7 @@ import { withDispatch } from '@wordpress/data';
  */
 import { Card, List, MenuItem, EllipsisMenu } from '@woocommerce/components';
 import { updateQueryString } from '@woocommerce/navigation';
-import { getSetting } from '@woocommerce/wc-admin-settings';
+import { PLUGINS_STORE_NAME } from '@woocommerce/data';
 
 /**
  * Internal dependencies
@@ -52,7 +52,12 @@ class TaskDashboard extends Component {
 	}
 
 	componentDidUpdate( prevProps ) {
-		const { completedTaskKeys, incompleteTasks, query, updateOptions } = this.props;
+		const {
+			completedTaskKeys,
+			incompleteTasks,
+			query,
+			updateOptions,
+		} = this.props;
 		const {
 			completedTaskKeys: prevCompletedTaskKeys,
 			incompleteTasks: prevIncompleteTasks,
@@ -78,7 +83,11 @@ class TaskDashboard extends Component {
 	}
 
 	possiblyTrackCompletedTasks() {
-		const { completedTaskKeys, trackedCompletedTasks, updateOptions } = this.props;
+		const {
+			completedTaskKeys,
+			trackedCompletedTasks,
+			updateOptions,
+		} = this.props;
 
 		if ( ! isEqual( trackedCompletedTasks, completedTaskKeys ) ) {
 			updateOptions( {
@@ -104,11 +113,11 @@ class TaskDashboard extends Component {
 	}
 
 	getPluginsInformation() {
-		const { isJetpackConnected } = this.props;
-		const { activePlugins, installedPlugins } = getSetting(
-			'onboarding',
-			{}
-		);
+		const {
+			isJetpackConnected,
+			activePlugins,
+			installedPlugins,
+		} = this.props;
 		return {
 			wcs_installed: installedPlugins.includes( 'woocommerce-services' ),
 			wcs_active: activePlugins.includes( 'woocommerce-services' ),
@@ -432,6 +441,9 @@ export default compose(
 		const { getProfileItems, getOptions, isJetpackConnected } = select(
 			'wc-api'
 		);
+		const { getActivePlugins, getInstalledPlugins } = select(
+			PLUGINS_STORE_NAME
+		);
 		const profileItems = getProfileItems();
 
 		const options = getOptions( [
@@ -469,10 +481,14 @@ export default compose(
 			options: getOptions( [ 'woocommerce_task_list_payments' ] ),
 			query: props.query,
 		} );
-		const completedTaskKeys = tasks.filter( task => task.completed ).map( task => task.key );
+		const completedTaskKeys = tasks
+			.filter( ( task ) => task.completed )
+			.map( ( task ) => task.key );
 		const incompleteTasks = tasks.filter(
 			( task ) => task.visible && ! task.completed
 		);
+		const activePlugins = getActivePlugins();
+		const installedPlugins = getInstalledPlugins();
 
 		return {
 			modalDismissed,
@@ -484,6 +500,8 @@ export default compose(
 			incompleteTasks,
 			trackedCompletedTasks,
 			completedTaskKeys,
+			activePlugins,
+			installedPlugins,
 		};
 	} ),
 	withDispatch( ( dispatch ) => {

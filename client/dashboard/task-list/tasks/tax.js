@@ -19,7 +19,7 @@ import {
 	getSetting,
 	setSetting,
 } from '@woocommerce/wc-admin-settings';
-import { SETTINGS_STORE_NAME } from '@woocommerce/data';
+import { SETTINGS_STORE_NAME, PLUGINS_STORE_NAME } from '@woocommerce/data';
 
 /**
  * Internal dependencies
@@ -476,10 +476,9 @@ class Tax extends Component {
 
 export default compose(
 	withWCApiSelect( ( select ) => {
-		const { getActivePlugins, getOptions, isJetpackConnected } = select(
-			'wc-api'
-		);
+		const { getOptions, isJetpackConnected } = select( 'wc-api' );
 
+		const { getActivePlugins } = select( PLUGINS_STORE_NAME );
 		const activePlugins = getActivePlugins();
 		const pluginsToActivate = difference(
 			[ 'jetpack', 'woocommerce-services' ],
